@@ -558,11 +558,15 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   lightNormal[1][2] = light[1][2];
 
   if(kd == NULL || kd->changed == 0){
-    //printf("No vertex normal table! Creating one...\n");
+    printf("No vertex normal table! Creating one...\n");
     kd = compute_vertex_normals(polygons);
   } 
 
-  kdNormalize(kd, viewNormal, lightNormal, ambient, reflect);
+  kd = kdNormalize(kd, viewNormal, lightNormal, ambient, reflect);
+
+  //kdCheck(kd, polygons);
+
+  //kdPrint(kd);
 
   drawPercent = 0;
   for(point = 0; point < polygons->lastcol-2; point+=3){

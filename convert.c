@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct matrix* convert(struct matrix* m, struct kdTree* kd, char* fileName){
+struct kdTree* convert(struct matrix* m, char* fileName){
 	FILE* f = fopen(fileName,"r");
 
 	char* fileType;
@@ -32,7 +32,8 @@ struct matrix* convert(struct matrix* m, struct kdTree* kd, char* fileName){
 	fileType = strrchr(fileName, '.');
 	fileType++;
 
-	if(kd == NULL) kd = kdCreate();
+	//if(kd == NULL) kd = kdCreate();
+	struct kdTree* kd = kdCreate();
 
 	if(!strcmp(fileType,"stl")){ //Stl file
 		fgets(buffer, BUFFER_SIZE, f);
@@ -100,12 +101,13 @@ struct matrix* convert(struct matrix* m, struct kdTree* kd, char* fileName){
 
 				for(int o = 0; o < 3; o++){
 					fread(binaryVertices, sizeof(float),3,f);
-					vertices[0] = binaryVertices[0];
-					vertices[1] = binaryVertices[1];
-					vertices[2] = binaryVertices[2];
+					vertices[0] = (double)binaryVertices[0];
+					vertices[1] = (double)binaryVertices[1];
+					vertices[2] = (double)binaryVertices[2];
 
 					add_point(m, vertices[0], vertices[1], vertices[2]);
 					kd = kdInsert(kd, vertices, vNormals);
+					//printf("%lf %lf %lf\n", vertices[0], vertices[1], vertices[2]);
 				}
 
 				fread(&data, sizeof(short int), 1, f);
@@ -249,5 +251,5 @@ struct matrix* convert(struct matrix* m, struct kdTree* kd, char* fileName){
 	free(buffer);
 	fclose(f);
 
-	return m;
+	return kd;
 }

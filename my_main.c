@@ -360,8 +360,11 @@ void my_main() {
             reflect = lookup_symbol(op[i].op.mesh.constants->name)->s.c;
           }
 
-          convert(tmp, kd, op[i].op.mesh.name);
+          kd = convert(tmp, op[i].op.mesh.name);
           matrix_mult(peek(systems),tmp);
+          kd = kdTransform(kd, peek(systems));
+
+          kdCheck(kd, tmp);
 
           draw_polygons(tmp, kd, t, zb, view, light, ambient, reflect);
           tmp->lastcol = 0;

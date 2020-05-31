@@ -3,6 +3,7 @@
 
 #include "ml6.h"
 #include "symtab.h"
+#include "matrix.h"
 
 #define MAXDEPTH 3
 
@@ -31,6 +32,10 @@ struct kdNode* kdGetNode(struct kdTree* kd, double* vertex);
 struct kdNode* kdGetNode_helper(struct kdNode* k, double* vertex, int depth);
 struct kdTree* kdNormalize(struct kdTree* kd, double *view, double light[2][3], color ambient, struct constants* reflect);
 struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, double light[2][3], color ambient, struct constants* reflect);
+struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m);
+struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m);
+void kdCheck(struct kdTree* kd, struct matrix* m);
+int kdCheck_helper(struct kdNode* k, double* vertex);
 double* kdGetNormal(struct kdTree* kd, double* vertex);
 color kdGetColor(struct kdTree* kd, double* vertex);
 

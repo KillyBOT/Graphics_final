@@ -6,7 +6,7 @@
 #include "draw.h"
 #include "kdTree.h"
 
-struct matrix* convert(struct matrix* m, struct kdTree* kd, char* fileName);
+struct kdTree* convert(struct matrix* m, char* fileName);
 
 #define BUFFER_SIZE 512
 

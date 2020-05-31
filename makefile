@@ -48,7 +48,7 @@ hashTable.o: hashTable.c hashTable.h
 convert.o: convert.c ml6.h matrix.h draw.h kdTree.h convert.h
 	$(CC) $(CFLAGS) -c convert.c
 
-kdTree.o: kdTree.c kdTree.h gmath.h
+kdTree.o: kdTree.c kdTree.h gmath.h matrix.h draw.h
 	$(CC) $(CFLAGS) -c kdTree.c
 
 clean:
