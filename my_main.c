@@ -361,14 +361,22 @@ void my_main() {
           }
 
           kd = convert(tmp, op[i].op.mesh.name);
+          kd = kdNormalize(kd, view, light, ambient, reflect);
+
           matrix_mult(peek(systems),tmp);
           kd = kdTransform(kd, peek(systems));
 
-          kdCheck(kd, tmp);
+          //kd = kdNormalize(kd, view, light ,ambient, reflect);
+
+          //kdCheck(kd, tmp);
 
           draw_polygons(tmp, kd, t, zb, view, light, ambient, reflect);
           tmp->lastcol = 0;
           reflect = &white;
+
+          //peek(systems)->lastcol = 4;
+          //print_matrix(peek(systems));
+          //print_matrix(matrix_inverse(peek(systems)));
 
           break;
 

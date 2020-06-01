@@ -558,12 +558,11 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   lightNormal[1][2] = light[1][2];
 
   if(kd == NULL || kd->changed == 0){
-    printf("No vertex normal table! Creating one...\n");
+    //printf("No vertex normal table! Creating one...\n");
     kd = compute_vertex_normals(polygons);
   } 
 
   kd = kdNormalize(kd, viewNormal, lightNormal, ambient, reflect);
-
   //kdCheck(kd, polygons);
 
   //kdPrint(kd);
@@ -613,7 +612,7 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   }
 
   //freeHT(h);
-  kdFree(kd);
+  //kdFree(kd);
 }
 /*======== void add_box() ==========
   Inputs:   struct matrix * edges

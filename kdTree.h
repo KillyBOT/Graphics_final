@@ -25,6 +25,8 @@ struct kdTree* kdCreate();
 void kdFree(struct kdTree* kd);
 void kdFree_helper(struct kdNode* k);
 struct kdNode* kdNodeCreate(double* vertex, double* normal);
+void kdCopy(struct kdTree* dest, struct kdTree* src);
+void kdCopy_helper(struct kdNode* k, struct kdTree* dest);
 
 struct kdTree* kdInsert(struct kdTree* kd, double* vertex, double* normal);
 struct kdNode* kdInsert_helper(struct kdNode* k, double* vertex, double* normal, int depth);
@@ -33,7 +35,7 @@ struct kdNode* kdGetNode_helper(struct kdNode* k, double* vertex, int depth);
 struct kdTree* kdNormalize(struct kdTree* kd, double *view, double light[2][3], color ambient, struct constants* reflect);
 struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, double light[2][3], color ambient, struct constants* reflect);
 struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m);
-struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m);
+struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m, struct matrix* mn);
 void kdCheck(struct kdTree* kd, struct matrix* m);
 int kdCheck_helper(struct kdNode* k, double* vertex);
 double* kdGetNormal(struct kdTree* kd, double* vertex);

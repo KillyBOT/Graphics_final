@@ -71,10 +71,10 @@ struct kdNode* kdInsert_helper(struct kdNode* k, double* vertex, double* normal,
 		return k;
 	}
 
-	if(k->vertex[depth] > vertex[depth]){
-		k->left = kdInsert_helper(k->left, vertex, normal, (depth + 1) % MAXDEPTH);
+	if(k->vertex[depth % MAXDEPTH] > vertex[depth % MAXDEPTH]){
+		k->left = kdInsert_helper(k->left, vertex, normal, depth + 1);
 	} else {
-		k->right = kdInsert_helper(k->right, vertex, normal, (depth+1) % MAXDEPTH);
+		k->right = kdInsert_helper(k->right, vertex, normal, depth+1);
 	}
 
 	return k;
@@ -97,10 +97,10 @@ struct kdNode* kdGetNode_helper(struct kdNode* k, double* vertex, int depth){
 		return k;
 	}
 
-	if(k->vertex[depth] > vertex[depth]){
-		return kdGetNode_helper(k->left, vertex, (depth + 1) % MAXDEPTH);
+	if(k->vertex[depth % MAXDEPTH] > vertex[depth % MAXDEPTH]){
+		return kdGetNode_helper(k->left, vertex, depth + 1);
 	} else {
-		return kdGetNode_helper(k->right, vertex, (depth + 1) % MAXDEPTH);
+		return kdGetNode_helper(k->right, vertex, depth + 1);
 	}
 }
 double* kdGetNormal(struct kdTree* kd, double* vertex){
@@ -125,35 +125,61 @@ struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, double light[2
 }
 
 struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m){
-	kd->root = kdTransform_helper(kd->root, m);
 
-	return kd;
+	struct matrix* mi = matrix_inverse(m);
+	struct matrix* mn = matrix_transpose(mi);
+
+	free_matrix(mi);
+
+
+	kd->root = kdTransform_helper(kd->root, m, mn);
+
+	struct kdTree* kdNew = kdCreate();
+	kdCopy(kdNew, kd);
+	kdFree(kd);
+	free_matrix(mn);
+
+	return kdNew;
 }
-struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m){
-	if(k->left != NULL) k->left = kdTransform_helper(k->left, m);
-	if(k->right != NULL) k->right = kdTransform_helper(k->right, m);
+struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m, struct matrix* mn){
+	if(k->left != NULL) k->left = kdTransform_helper(k->left, m, mn);
+	if(k->right != NULL) k->right = kdTransform_helper(k->right, m, mn);
 
 	struct matrix* tmp = new_matrix(4,4);
+	struct matrix* tmp2 = new_matrix(4,4);
 	add_point(tmp, k->vertex[0],k->vertex[1],k->vertex[2]);
-	add_point(tmp, k->normal[0],k->normal[1],k->normal[2]);
+	add_point(tmp2, k->normal[0],k->normal[1],k->normal[2]);
 
 	//printf("Before: %lf %lf %lf\n", k->vertex[0], k->vertex[1], k->vertex[2]);
 
 	matrix_mult(m, tmp);
+	matrix_mult(mn, tmp2);
 
 	k->vertex[0] = tmp->m[0][0];
 	k->vertex[1] = tmp->m[1][0];
 	k->vertex[2] = tmp->m[2][0];
 
-	k->normal[0] = tmp->m[0][1];
-	k->normal[1] = tmp->m[1][1];
-	k->normal[2] = tmp->m[2][1];
+	k->normal[0] = tmp2->m[0][0];
+	k->normal[1] = tmp2->m[1][0];
+	k->normal[2] = tmp2->m[2][0];
 
 	//printf("After: %lf %lf %lf\n", k->vertex[0], k->vertex[1], k->vertex[2]);
 
 	free_matrix(tmp);
+	free_matrix(tmp2);
 
 	return k;
+}
+
+void kdCopy(struct kdTree* dest, struct kdTree* src){
+	kdCopy_helper(src->root, dest);
+}
+
+void kdCopy_helper(struct kdNode* k, struct kdTree* dest){
+	if(k->left != NULL) kdCopy_helper(k->left,dest);
+	if(k->right != NULL) kdCopy_helper(k->right,dest);
+
+	kdInsert(dest, k->vertex, k->normal);
 }
 
 void kdCheck(struct kdTree* kd, struct matrix* m){

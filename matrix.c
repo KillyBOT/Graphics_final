@@ -214,6 +214,7 @@ void print_matrix(struct matrix *m) {
       printf("%0.2f ", m->m[r][c]);
     printf("\n");
   }
+  printf("\n");
 }//end print_matrix
 
 /*-------------- void ident() --------------
@@ -344,9 +345,146 @@ copy matrix a to matrix b
 void copy_matrix(struct matrix *a, struct matrix *b) {
 
   int r, c;
+  b->lastcol = a->lastcol;
 
   for (r=0; r < a->rows; r++) 
     for (c=0; c < a->cols; c++)  
       b->m[r][c] = a->m[r][c];  
 }
 
+int matrix_det(struct matrix* m){
+
+  if(m->rows > 4 || m->cols > 4 || m->rows < 2 || m->cols < 2){
+    printf("Error! I was too lazy to program in a way to do nxn determinants so you\'re stuck with this.\n");
+    return 0;
+
+  } else if (m->rows == 2 && m->cols == 2){
+    return (m->m[1][1] * m->m[0][0]) - (m->m[1][0] * m->m[0][1]);
+  }
+
+  else {
+
+    int sign = 1;
+    int currentTop = 0;
+    int final = 0;
+    struct matrix* tmp;
+    int colToAdd = 0;
+
+    tmp = new_matrix(m->rows-1,m->cols-1);
+
+    for(int top = 0; top < m->cols; top++){
+
+      currentTop = m->m[0][top];
+
+      for(int currentCol = 0; currentCol < m->cols; currentCol++){
+        if(currentCol != top){
+
+          for(int currentRow = 1; currentRow < m->rows; currentRow++){
+            tmp->m[currentRow-1][colToAdd] = m->m[currentRow][currentCol];
+          }
+
+          colToAdd++;
+          tmp->lastcol++;
+        }
+      }
+
+
+
+      final += sign * currentTop * matrix_det(tmp);
+      sign *= -1;
+      tmp->lastcol = 0;
+      colToAdd = 0;
+
+    }
+    free_matrix(tmp);
+
+    return final;
+  }
+}
+
+struct matrix* matrix_minor(struct matrix* m){
+
+  struct matrix* final = new_matrix(m->rows, m->cols);
+  copy_matrix(m,final);
+  struct matrix* tmp = new_matrix(m->rows-1,m->cols-1);
+  tmp->lastcol = m->cols-1;
+
+  int tmpRow;
+  int tmpCol;
+
+  for(int excludeRow = 0; excludeRow < m->rows; excludeRow++){
+    for(int excludeCol = 0; excludeCol < m->cols; excludeCol++){
+
+      tmpRow = 0;
+      tmpCol = 0;
+
+      for(int r = 0; r < m->rows; r++){
+
+        if(r != excludeRow){
+          tmpCol = 0;
+          for(int c = 0; c < m->cols; c++){
+            if(r != excludeRow && c != excludeCol){
+              tmp->m[tmpRow][tmpCol] = m->m[r][c];
+              tmpCol++;
+            }
+          }
+          tmpRow++;
+        }
+        
+      }
+
+      final->m[excludeRow][excludeCol] = matrix_det(tmp);
+
+    }
+  }
+
+  free_matrix(tmp);
+
+  return final;
+}
+
+struct matrix* matrix_transpose(struct matrix* m){
+  struct matrix* mt = new_matrix(m->cols,m->rows);
+  mt->lastcol = m->rows;
+
+  for(int r = 0; r < m->rows; r++){
+    for(int c = 0; c < m->cols; c++){
+      mt->m[c][r] = m->m[r][c];
+    }
+  }
+
+  return mt;
+}
+
+struct matrix* matrix_adjugate(struct matrix* m){
+  struct matrix* minor = matrix_minor(m);
+
+  int sign = 1;
+
+  for(int r = 0; r < minor->rows; r++){
+    for(int c = 0; c < minor->cols; c++){
+      minor->m[r][c] *= sign;
+      sign *= -1;
+    }
+    sign *= -1;
+  }
+
+  struct matrix* final = matrix_transpose(minor);
+
+  return final;
+}
+
+struct matrix* matrix_inverse(struct matrix* m){
+  struct matrix* inverse = matrix_adjugate(m);
+
+  double det = matrix_det(m);
+  det = 1.0 / det;
+
+  for(int r = 0; r < m->rows; r++){
+    for(int c = 0; c < m->cols; c++){
+      inverse->m[r][c] *= det;
+    }
+  }
+
+  return inverse;
+}
