@@ -110,16 +110,16 @@ color kdGetColor(struct kdTree* kd, double* vertex){
 	return kdGetNode(kd, vertex)->c;
 }
 
-struct kdTree* kdNormalize(struct kdTree* kd, double *view, double light[2][3], color ambient, struct constants* reflect){
-	kd->root = kdNormalize_helper(kd->root, view, light, ambient, reflect);
+struct kdTree* kdNormalize(struct kdTree* kd, double *view, color ambient, struct constants* reflect){
+	kd->root = kdNormalize_helper(kd->root, view, ambient, reflect);
 	return kd;
 }
-struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, double light[2][3], color ambient, struct constants* reflect){
-	if(k->left != NULL) k->left = kdNormalize_helper(k->left, view, light, ambient, reflect);
-	if(k->right != NULL) k->right = kdNormalize_helper(k->right, view, light, ambient, reflect);
+struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, color ambient, struct constants* reflect){
+	if(k->left != NULL) k->left = kdNormalize_helper(k->left, view, ambient, reflect);
+	if(k->right != NULL) k->right = kdNormalize_helper(k->right, view, ambient, reflect);
 
 	normalize(k->normal);
-	k->c = get_lighting(k->normal, view, ambient, light, reflect);
+	k->c = get_lighting(k->normal, view, ambient, reflect);
 
 	return k;
 }

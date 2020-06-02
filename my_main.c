@@ -221,14 +221,17 @@ void my_main() {
   ambient.green = 50;
   ambient.blue = 50;
 
-  double light[2][3];
-  light[LOCATION][0] = 0.5;
-  light[LOCATION][1] = 0.75;
-  light[LOCATION][2] = 1;
+  struct light* defaultLight = malloc(sizeof(struct light));
+  struct light* tmpLight;
+  defaultLight->l[0] = 0.5;
+  defaultLight->l[1] = 0.75;
+  defaultLight->l[2] = 1;
 
-  light[COLOR][RED] = 255;
-  light[COLOR][GREEN] = 255;
-  light[COLOR][BLUE] = 255;
+  defaultLight->c[RED] = 255;
+  defaultLight->c[GREEN] = 255;
+  defaultLight->c[BLUE] = 255;
+
+  add_symbol("DefaultLight",SYM_LIGHT,defaultLight);
 
   double view[3];
   view[0] = 0;
@@ -297,7 +300,7 @@ void my_main() {
                      op[i].op.sphere.d[2],
                      op[i].op.sphere.r, step_3d);
           matrix_mult( peek(systems), tmp );
-          draw_polygons(tmp, kd, t, zb, view, light, ambient,
+          draw_polygons(tmp, kd, t, zb, view, ambient,
                         reflect);
           tmp->lastcol = 0;
           reflect = &white;
@@ -322,7 +325,7 @@ void my_main() {
                     op[i].op.torus.d[2],
                     op[i].op.torus.r0,op[i].op.torus.r1, step_3d);
           matrix_mult( peek(systems), tmp );
-          draw_polygons(tmp, kd, t, zb, view, light, ambient,
+          draw_polygons(tmp, kd, t, zb, view, ambient,
                         reflect);
           tmp->lastcol = 0;
           reflect = &white;
@@ -348,7 +351,7 @@ void my_main() {
                   op[i].op.box.d1[0],op[i].op.box.d1[1],
                   op[i].op.box.d1[2]);
           matrix_mult( peek(systems), tmp );
-          draw_polygons(tmp, kd, t, zb, view, light, ambient,
+          draw_polygons(tmp, kd, t, zb, view, ambient,
                         reflect);
           tmp->lastcol = 0;
           reflect = &white;
@@ -372,7 +375,7 @@ void my_main() {
             step_3d);
 
           matrix_mult(peek(systems),tmp);
-          draw_polygons(tmp, kd, t, zb, view, light, ambient, reflect);
+          draw_polygons(tmp, kd, t, zb, view, ambient, reflect);
 
           tmp->lastcol = 0;
           reflect = &white;
@@ -394,7 +397,7 @@ void my_main() {
 
           //kdCheck(kd, tmp);
 
-          draw_polygons(tmp, kd, t, zb, view, light, ambient, reflect);
+          draw_polygons(tmp, kd, t, zb, view, ambient, reflect);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -482,10 +485,14 @@ void my_main() {
           break;
         case LIGHT:
 
-          for(int x = 0; x < 3; x++){
-            light[LOCATION][x] = op[i].op.light.p->s.l->l[x];
-            light[COLOR][x] = op[i].op.light.p->s.l->c[x];
+          tmpLight = malloc(sizeof(struct light));
+
+          for(int n = 0; n < 3; n++){
+            tmpLight->l[n] = op[i].op.light.p->s.l->l[n];
+            tmpLight->c[n] = op[i].op.light.p->s.l->c[n];
           }
+
+          add_symbol(op[i].op.light.p->name,SYM_LIGHT,tmpLight);
 
           break;
         case SET:

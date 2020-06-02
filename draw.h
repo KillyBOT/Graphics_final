@@ -15,9 +15,9 @@
 void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1);
 void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd);
 void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, double* v0, double* v1,
-  double* view, double light[2][3], color ambient, struct constants* reflect);
+  double* view, color ambient, struct constants* reflect);
 void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd,
-  double* view, double light[2][3], color ambient, struct constants* reflect);
+  double* view, color ambient, struct constants* reflect);
 
 //polygon organization
 void add_polygons( struct matrix * polys,
@@ -27,11 +27,8 @@ void add_polygons( struct matrix * polys,
 struct kdTree* compute_vertex_normals(struct matrix* polygons);
 void draw_polygons( struct matrix * polys, struct kdTree* kd,
                     screen s, zbuffer zb,
-                    double *view, double light[2][3], color ambient,
+                    double *view, color ambient,
                     struct constants *reflect);
-void draw_polygons_phong( struct matrix * polygons, screen s, zbuffer zb,
-  double* view, double light[2][3], color ambient,
-  struct constants *reflect);
 
 struct matrix* stlConvert(struct matrix* m, char* fileName);
 

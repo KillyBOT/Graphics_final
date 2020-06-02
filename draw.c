@@ -72,7 +72,7 @@ void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s
 }
 
 void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, double* v0, double* v1,
-  double* view, double light[2][3], color ambient, struct constants* reflect) {
+  double* view, color ambient, struct constants* reflect) {
 
   int tempX, tempZ;
   double v0f[3];
@@ -112,7 +112,7 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
     set(vn, v);
     //normalize(vn);
 
-    c = get_lighting(v, view, ambient, light, reflect);
+    c = get_lighting(v, view, ambient, reflect);
 
     plot(s, zb, c, x, y, z);
 
@@ -296,7 +296,7 @@ void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer z
 }
 
 void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd, 
-  double* view, double light[2][3], color ambient, struct constants* reflect) {
+  double* view, color ambient, struct constants* reflect) {
 
   int top, mid, bot, y;
   double topV[3], midV[3], botV[3];
@@ -425,7 +425,7 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
     //normalize(v1n);
     //printf("%f %f %f %f %f %f\n%d %d %d %d %d %d\n",c0R, c0G, c0B, c1R, c1G, c1B,c0.red,c0.green,c0.blue,c1.red,c1.green,c1.blue);
 
-    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0, v1, view, light, ambient, reflect);
+    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0, v1, view, ambient, reflect);
     //printf("%f %f %f\n", v0[0], v0[1], v0[2]);
 
     x0+= dx0;
@@ -528,7 +528,7 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons){
   ====================*/
 void draw_polygons( struct matrix *polygons, struct kdTree* kd,
                     screen s, zbuffer zb,
-                    double *view, double light[2][3], color ambient,
+                    double *view, color ambient,
                     struct constants* reflect) {
   
   if ( polygons->lastcol < 3 ) {
@@ -542,27 +542,14 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   double percentChange = 1.0 / (double)(polygons->lastcol/3);
 
   double* normal;
-  double viewNormal[3];
-  double lightNormal[2][3];
 
-  viewNormal[0] = view[0];
-  viewNormal[1] = view[1];
-  viewNormal[2] = view[2];
-
-  lightNormal[0][0] = light[0][0];
-  lightNormal[0][1] = light[0][1];
-  lightNormal[0][2] = light[0][2];
-
-  lightNormal[1][0] = light[1][0];
-  lightNormal[1][1] = light[1][1];
-  lightNormal[1][2] = light[1][2];
 
   if(kd == NULL || kd->changed == 0){
     //printf("No vertex normal table! Creating one...\n");
     kd = compute_vertex_normals(polygons);
   } 
 
-  kd = kdNormalize(kd, viewNormal, lightNormal, ambient, reflect);
+  kd = kdNormalize(kd, view, ambient, reflect);
   //kdCheck(kd, polygons);
 
   //kdPrint(kd);
@@ -584,7 +571,7 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
       //color i = get_lighting(normal, view, ambient, light, areflect, dreflect, sreflect);
 
       if(DRAW_CURRENT == DRAW_GOURAUD) scanline_convert_gouraud(polygons, point, s, zb, kd);
-      else if(DRAW_CURRENT == DRAW_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, viewNormal, lightNormal, ambient, reflect);
+      else if(DRAW_CURRENT == DRAW_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, view, ambient, reflect);
 
       /* draw_line( polygons->m[0][point], */
       /*            polygons->m[1][point], */
@@ -930,9 +917,6 @@ void add_cylinder( struct matrix* edges,
     p1 = step + ((longt + 1) % step);
     p2 = (longt + 1) % step;
     p3 = longt % step;
-
-
-
 
     //printf("%lf %lf %lf\n", points->m[0][p0], points->m[1][p0],points->m[2][p0]);
 
