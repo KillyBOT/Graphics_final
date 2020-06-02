@@ -354,6 +354,30 @@ void my_main() {
           reflect = &white;
 
           break;
+        case CYLINDER:
+
+          if (op[i].op.cylinder.constants != NULL){
+            reflect = lookup_symbol(op[i].op.cylinder.constants->name)->s.c;
+          }
+          if (op[i].op.cylinder.cs != NULL) {
+            //
+          }
+
+          add_cylinder(tmp,
+            op[i].op.cylinder.d[0],
+            op[i].op.cylinder.d[1],
+            op[i].op.cylinder.d[2],
+            op[i].op.cylinder.r,
+            op[i].op.cylinder.h,
+            step_3d);
+
+          matrix_mult(peek(systems),tmp);
+          draw_polygons(tmp, kd, t, zb, view, light, ambient, reflect);
+
+          tmp->lastcol = 0;
+          reflect = &white;
+
+          break;
         case MESH:
 
           if(op[i].op.mesh.constants != NULL){
@@ -361,7 +385,7 @@ void my_main() {
           }
 
           kd = convert(tmp, op[i].op.mesh.name);
-          kd = kdNormalize(kd, view, light, ambient, reflect);
+          //kd = kdNormalize(kd, view, light, ambient, reflect);
 
           matrix_mult(peek(systems),tmp);
           kd = kdTransform(kd, peek(systems));
@@ -462,6 +486,11 @@ void my_main() {
             light[LOCATION][x] = op[i].op.light.p->s.l->l[x];
             light[COLOR][x] = op[i].op.light.p->s.l->c[x];
           }
+
+          break;
+        case SET:
+
+          set_value(op[i].op.set.p,op[i].op.set.val);
 
           break;
         case AMBIENT:

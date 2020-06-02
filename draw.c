@@ -903,6 +903,100 @@ struct matrix * generate_torus( double cx, double cy, double cz,
   return points;
 }
 
+void add_cylinder( struct matrix* edges,
+  double cx, double cy, double cz,
+  double r, double h, int step){
+
+  struct matrix* points = generate_cylinder(cx,cy,cz,r,h,step);
+
+  int longt, longtStart, longtStop;
+  int p0, p1, p2, p3;
+
+  double pTop[3], pBot[3];
+
+  pTop[0] = cx;
+  pTop[1] = cy + (h / 2.0);
+  pTop[2] = cz;
+
+  pBot[0] = cx;
+  pBot[1] = cy - (h / 2.0);
+  pBot[2] = cz;
+
+  longtStart = 0;
+  longtStop = step;
+
+  for(int longt = longtStart; longt < longtStop; longt++){
+    p0 = step + (longt % step);
+    p1 = step + ((longt + 1) % step);
+    p2 = (longt + 1) % step;
+    p3 = longt % step;
+
+
+
+
+    //printf("%lf %lf %lf\n", points->m[0][p0], points->m[1][p0],points->m[2][p0]);
+
+    add_polygon(edges, points->m[0][p0], points->m[1][p0],points->m[2][p0],
+      points->m[0][p1], points->m[1][p1],points->m[2][p1],
+      points->m[0][p2], points->m[1][p2],points->m[2][p2]);
+    add_polygon(edges, points->m[0][p0], points->m[1][p0],points->m[2][p0],
+      points->m[0][p2], points->m[1][p2],points->m[2][p2],
+      points->m[0][p3], points->m[1][p3],points->m[2][p3]);
+
+    add_polygon(edges,pTop[0],pTop[1],pTop[2],
+      points->m[0][p3], points->m[1][p3],points->m[2][p3],
+      points->m[0][p2], points->m[1][p2],points->m[2][p2]);
+
+    add_polygon(edges,pBot[0],pBot[1],pBot[2],
+      points->m[0][p1], points->m[1][p1],points->m[2][p1],
+      points->m[0][p0], points->m[1][p0],points->m[2][p0]);
+
+  }
+
+  free_matrix(points);
+
+}
+
+struct matrix* generate_cylinder( double cx, double cy, double cz,
+  double r, double h, int step){
+
+  struct matrix* points = new_matrix(4, step*2);
+  int rotation, rot_start, rot_stop;
+  double x, y, z, rot;
+
+  rot_start = 0;
+  rot_stop = step;
+
+  for(rotation = rot_start; rotation < rot_stop; rotation++){
+
+    rot = (double)rotation / step;
+
+    x = r * cos(2 * M_PI * rot) + cx;
+    y = cy + (h / 2.0);
+    z = r * sin(-2 * M_PI * rot) + cz;
+
+    //printf("%lf %lf %lf\n",x,y,z);
+
+    add_point(points,x,y,z);
+
+  }
+
+  for(rotation = rot_start; rotation < rot_stop; rotation++){
+
+    rot = (double)rotation / step;
+
+    x = r * cos(2 * M_PI * rot) + cx;
+    y = cy - (h / 2.0);
+    z = r * sin(-2 * M_PI * rot) + cz;
+
+    add_point(points,x,y,z);
+
+  }
+
+  return points;
+
+}
+
 /*======== void add_circle() ==========
   Inputs:   struct matrix * edges
             double cx

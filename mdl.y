@@ -29,7 +29,7 @@
 %token <val> DOUBLE
 %token <string> LIGHT AMBIENT
 %token <string> CONSTANTS SAVE_COORDS CAMERA
-%token <string> SPHERE TORUS BOX LINE CS MESH TEXTURE
+%token <string> SPHERE TORUS BOX LINE CS MESH TEXTURE CYLINDER
 %token <string> STRING
 %token <string> SET MOVE SCALE ROTATE BASENAME SAVE_KNOBS TWEEN FRAMES VARY
 %token <string> PUSH POP SAVE GENERATE_RAYFILES
@@ -103,7 +103,6 @@ SPHERE STRING DOUBLE DOUBLE DOUBLE DOUBLE STRING
   op[lastop].op.sphere.constants = add_symbol($2,SYM_CONSTANTS,c);
   lastop++;
 }|
-
 TORUS DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE
 {
   lineno++;
@@ -167,7 +166,69 @@ TORUS STRING DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE STRING
 
   lastop++;
 }|
+CYLINDER DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE
+{
+  lineno++;
+  op[lastop].opcode = CYLINDER;
+  op[lastop].op.cylinder.d[0] = $2;
+  op[lastop].op.cylinder.d[1] = $3;
+  op[lastop].op.cylinder.d[2] = $4;
+  op[lastop].op.cylinder.d[3] = 0;
+  op[lastop].op.cylinder.r = $5;
+  op[lastop].op.cylinder.h = $6;
+  op[lastop].op.cylinder.constants = NULL;
+  op[lastop].op.cylinder.cs = NULL;
 
+  lastop++;
+}|
+CYLINDER DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE STRING
+{
+  lineno++;
+  op[lastop].opcode = CYLINDER;
+  op[lastop].op.cylinder.d[0] = $2;
+  op[lastop].op.cylinder.d[1] = $3;
+  op[lastop].op.cylinder.d[2] = $4;
+  op[lastop].op.cylinder.d[3] = 0;
+  op[lastop].op.cylinder.r = $5;
+  op[lastop].op.cylinder.h = $6;
+  op[lastop].op.cylinder.constants = NULL;
+  m = (struct matrix *)new_matrix(4,4);
+  op[lastop].op.cylinder.cs = add_symbol($7,SYM_MATRIX,m);
+  lastop++;
+}|
+CYLINDER STRING DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE
+{
+  lineno++;
+  op[lastop].opcode = CYLINDER;
+  op[lastop].op.cylinder.d[0] = $3;
+  op[lastop].op.cylinder.d[1] = $4;
+  op[lastop].op.cylinder.d[2] = $5;
+  op[lastop].op.cylinder.d[3] = 0;
+  op[lastop].op.cylinder.r = $6;
+  op[lastop].op.cylinder.h = $7;
+  op[lastop].op.cylinder.cs = NULL;
+  c = (struct constants *)malloc(sizeof(struct constants));
+  op[lastop].op.cylinder.constants = add_symbol($2,SYM_CONSTANTS,c);
+
+  lastop++;
+}|
+CYLINDER STRING DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE STRING
+{
+  lineno++;
+  op[lastop].opcode = CYLINDER;
+  op[lastop].op.cylinder.d[0] = $3;
+  op[lastop].op.cylinder.d[1] = $4;
+  op[lastop].op.cylinder.d[2] = $5;
+  op[lastop].op.cylinder.d[3] = 0;
+  op[lastop].op.cylinder.r = $6;
+  op[lastop].op.cylinder.h = $7;
+  c = (struct constants *)malloc(sizeof(struct constants));
+  op[lastop].op.cylinder.constants = add_symbol($2,SYM_CONSTANTS,c);
+  m = (struct matrix *)new_matrix(4,4);
+  op[lastop].op.cylinder.cs = add_symbol($8,SYM_MATRIX,m);
+
+  lastop++;
+}|
 BOX DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE
 {
   lineno++;
