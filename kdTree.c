@@ -131,7 +131,6 @@ struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m){
 
 	free_matrix(mi);
 
-
 	kd->root = kdTransform_helper(kd->root, m, mn);
 
 	struct kdTree* kdNew = kdCreate();

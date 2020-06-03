@@ -4,7 +4,7 @@ LDFLAGS= -lm
 CC= gcc
 
 parser: lex.yy.c y.tab.c y.tab.h $(OBJECTS)
-	gcc -o mdl $(CFLAGS) lex.yy.c y.tab.c $(OBJECTS) $(LDFLAGS)
+	gcc -o KEngine $(CFLAGS) lex.yy.c y.tab.c $(OBJECTS) $(LDFLAGS)
 
 lex.yy.c: mdl.l y.tab.h 
 	flex -I mdl.l

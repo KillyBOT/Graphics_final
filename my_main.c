@@ -40,6 +40,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "parser.h"
 #include "symtab.h"
 #include "y.tab.h"
@@ -243,15 +246,22 @@ struct vary_node ** second_pass() {
             knobs[f]->next = NULL;
           }
           else {
-            while(curr->next != NULL){
+            while(curr->next != NULL && !strcmp(curr->name,op[i].op.vary.p->name)){
               curr = curr->next;
             }
 
-            curr->next = malloc(sizeof(struct vary_node));
+            if(!strcmp(curr->name,op[i].op.vary.p->name)){
+              curr->value = currentVal;
+            }
+            else if(curr->next == NULL){
+              curr->next = malloc(sizeof(struct vary_node));
 
-            strcpy(curr->next->name, op[i].op.vary.p->name);
-            curr->next->value = currentVal;
-            curr->next->next = NULL;
+              strcpy(curr->next->name, op[i].op.vary.p->name);
+              curr->next->value = currentVal;
+              curr->next->next = NULL;
+            }
+
+            
           }
 
           currentVal += valChange;
@@ -303,16 +313,17 @@ struct vary_node ** second_pass() {
                 curr = curr->next;
               }
 
-              if(curr->next == NULL){
+
+              if(!strcmp(curr->name,startKnob->name)){
+                curr->value = currentVal;
+              }
+              else if(curr->next == NULL){
                 curr->next = malloc(sizeof(struct vary_node));
 
                 strcpy(curr->next->name, startKnob->name);
                 curr->next->value = currentVal;
                 curr->next->next = NULL;
-              } else {
-                curr->value = currentVal;
-
-              }        
+              }     
             }
 
             currentVal += valChange;
@@ -344,8 +355,10 @@ void my_main() {
   struct stack *systems;
   screen t;
   zbuffer zb;
-  double step_3d = 100;
+  double step_3d = 30;
   double theta, xval, yval, zval;
+
+  int shaderType = SHADER_PHONG;
 
   //Lighting values here for easy access
   color ambient;
@@ -440,7 +453,7 @@ void my_main() {
           
           
           draw_polygons(tmp, kd, t, zb, view, ambient,
-                        reflect);
+                        reflect, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -471,7 +484,7 @@ void my_main() {
 
           
           draw_polygons(tmp, kd, t, zb, view, ambient,
-                        reflect);
+                        reflect, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -502,11 +515,32 @@ void my_main() {
 
         
           draw_polygons(tmp, kd, t, zb, view, ambient,
-                        reflect);
+                        reflect, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
           break;
+        case PLANE:
+
+          if(op[i].op.plane.constants != NULL) {
+            reflect = lookup_symbol(op[i].op.plane.constants->name)->s.c;
+          }
+
+          add_plane(tmp,
+            op[i].op.plane.d[0],op[i].op.plane.d[1],op[i].op.plane.d[2],
+            op[i].op.plane.w,op[i].op.plane.h);
+
+          if(op[i].op.plane.cs != NULL){
+            matrix_mult(op[i].op.plane.cs->s.m, tmp);
+          } else {
+            matrix_mult(peek(systems), tmp);
+          }
+
+          draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
+          tmp->lastcol = 0;
+          reflect = &white;
+          break;
+
         case CYLINDER:
 
           if (op[i].op.cylinder.constants != NULL){
@@ -527,7 +561,7 @@ void my_main() {
             matrix_mult(peek(systems),tmp);
           }
 
-          draw_polygons(tmp, kd, t, zb, view, ambient, reflect);
+          draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
 
           tmp->lastcol = 0;
           reflect = &white;
@@ -550,7 +584,7 @@ void my_main() {
             kd = kdTransform(kd, peek(systems));
           }
 
-          draw_polygons(tmp, kd, t, zb, view, ambient, reflect);
+          draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -661,6 +695,14 @@ void my_main() {
           }
 
           break;
+        case SHADING:
+
+          if(!strcmp(op[i].op.shading.p->name,"flat")) shaderType = SHADER_FLAT;
+          if(!strcmp(op[i].op.shading.p->name,"gouraud")) shaderType = SHADER_GOURAUD;
+          if(!strcmp(op[i].op.shading.p->name,"phong")) shaderType = SHADER_PHONG;
+          if(!strcmp(op[i].op.shading.p->name,"wireframe")) shaderType = SHADER_WIREFRAME;
+
+          break;
         case PUSH:
           //printf("Push");
           push(systems);
@@ -672,7 +714,18 @@ void my_main() {
         case SAVE:
           if(num_frames <= 1){
             //printf("Save: %s",op[i].op.save.p->name);
-            save_extension(t, op[i].op.save.p->name);
+            char finalName[256] = "";
+
+            struct stat st = {0};
+
+            if(stat("output",&st) == -1){
+              mkdir("output",0700);
+            }
+
+            strcat(finalName,"output/");
+            strcat(finalName,op[i].op.save.p->name);
+            save_extension(t, finalName);
+            printf("Image saved! Check the output folder\n");
             break;
           }
         case SAVE_COORDS:
@@ -710,6 +763,13 @@ void my_main() {
   }
 
   if(num_frames > 1){
+
+    struct stat st = {0};
+
+    if(stat("output",&st) == -1){
+      mkdir("output",0700);
+    }
+
     int status;
 
     int n = fork();
@@ -723,7 +783,7 @@ void my_main() {
       char finalFileArg[256];
 
       sprintf(fileArg, "%s_*",name);
-      sprintf(finalFileArg, "%s.gif",name);
+      sprintf(finalFileArg, "output/%s.gif",name);
 
       delayTime = 1.7;
       sprintf(delayArg, "%.1f",delayTime);
@@ -751,6 +811,8 @@ void my_main() {
     } else {
       printf("Cleaning up...\n");
       waitpid(n, &status, 0);
+
+      printf("Drawing complete! Check the output folder\n");
     }
   }
 

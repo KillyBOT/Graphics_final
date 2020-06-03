@@ -60,27 +60,28 @@ extern int yydebug;
     MESH = 270,
     TEXTURE = 271,
     CYLINDER = 272,
-    STRING = 273,
-    SET = 274,
-    MOVE = 275,
-    SCALE = 276,
-    ROTATE = 277,
-    BASENAME = 278,
-    SAVE_KNOBS = 279,
-    TWEEN = 280,
-    FRAMES = 281,
-    VARY = 282,
-    PUSH = 283,
-    POP = 284,
-    SAVE = 285,
-    GENERATE_RAYFILES = 286,
-    SHADING = 287,
-    SHADING_TYPE = 288,
-    SETKNOBS = 289,
-    FOCAL = 290,
-    DISPLAY = 291,
-    WEB = 292,
-    CO = 293
+    PLANE = 273,
+    STRING = 274,
+    SET = 275,
+    MOVE = 276,
+    SCALE = 277,
+    ROTATE = 278,
+    BASENAME = 279,
+    SAVE_KNOBS = 280,
+    TWEEN = 281,
+    FRAMES = 282,
+    VARY = 283,
+    PUSH = 284,
+    POP = 285,
+    SAVE = 286,
+    GENERATE_RAYFILES = 287,
+    SHADING = 288,
+    SHADING_TYPE = 289,
+    SETKNOBS = 290,
+    FOCAL = 291,
+    DISPLAY = 292,
+    WEB = 293,
+    CO = 294
   };
 #endif
 /* Tokens.  */
@@ -99,27 +100,28 @@ extern int yydebug;
 #define MESH 270
 #define TEXTURE 271
 #define CYLINDER 272
-#define STRING 273
-#define SET 274
-#define MOVE 275
-#define SCALE 276
-#define ROTATE 277
-#define BASENAME 278
-#define SAVE_KNOBS 279
-#define TWEEN 280
-#define FRAMES 281
-#define VARY 282
-#define PUSH 283
-#define POP 284
-#define SAVE 285
-#define GENERATE_RAYFILES 286
-#define SHADING 287
-#define SHADING_TYPE 288
-#define SETKNOBS 289
-#define FOCAL 290
-#define DISPLAY 291
-#define WEB 292
-#define CO 293
+#define PLANE 273
+#define STRING 274
+#define SET 275
+#define MOVE 276
+#define SCALE 277
+#define ROTATE 278
+#define BASENAME 279
+#define SAVE_KNOBS 280
+#define TWEEN 281
+#define FRAMES 282
+#define VARY 283
+#define PUSH 284
+#define POP 285
+#define SAVE 286
+#define GENERATE_RAYFILES 287
+#define SHADING 288
+#define SHADING_TYPE 289
+#define SETKNOBS 290
+#define FOCAL 291
+#define DISPLAY 292
+#define WEB 293
+#define CO 294
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -131,7 +133,7 @@ union YYSTYPE
   double val;
   char string[255];
 
-#line 135 "y.tab.h" /* yacc.c:1909  */
+#line 137 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

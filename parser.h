@@ -12,7 +12,6 @@ extern int lastop;
 #define Kd 1
 #define Ks 2
 
-
 struct command
 {
   int opcode;
@@ -69,6 +68,12 @@ struct command
       double d0[4],d1[4];
       SYMTAB *cs;
     } box;
+    struct {
+      SYMTAB *constants;
+      double d[4];
+      double w, h;
+      SYMTAB* cs;
+    } plane;
     struct {
       SYMTAB *constants;
       double p0[4],p1[4];

@@ -1,0 +1,21 @@
+push
+move 100 100 0
+shading flat
+sphere 0 0 0 50
+pop
+push
+move 200 200 0
+shading gouraud
+sphere 0 0 0 50
+pop
+push
+move 300 300 0
+shading phong
+sphere 0 0 0 50
+pop
+push
+move 400 400 0
+shading wireframe
+sphere 0 0 0 50
+display
+save shaders_test.png

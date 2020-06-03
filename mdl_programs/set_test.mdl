@@ -1,0 +1,11 @@
+frames 60
+basename set_test
+push
+move 250 250 0 v0
+set v0 1
+light r 0 0 1 255 0 0
+light g .5 1 1 0 255 0
+light b 1 0 1 0 0 255
+cylinder 0 0 0 50 100
+
+vary v0 0 59 0 1

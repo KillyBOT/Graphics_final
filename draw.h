@@ -8,9 +8,10 @@
 #include "hashTable.h"
 #include "kdTree.h"
 
-#define DRAW_GOURAUD 0
-#define DRAW_PHONG 1
-#define DRAW_CURRENT 1
+#define SHADER_FLAT 0
+#define SHADER_GOURAUD 1
+#define SHADER_PHONG 2
+#define SHADER_WIREFRAME 3
 
 void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1);
 void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd);
@@ -18,6 +19,9 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
   double* view, color ambient, struct constants* reflect);
 void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd,
   double* view, color ambient, struct constants* reflect);
+void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c);
+void scanline_convert_flat( struct matrix* points, int i, screen s, zbuffer zb, double* view, color ambient, struct constants* reflect, double sNormal[3]);
+void draw_wireframe(struct matrix* points, int i, screen s, zbuffer zb, color c);
 
 //polygon organization
 void add_polygons( struct matrix * polys,
@@ -28,7 +32,8 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons);
 void draw_polygons( struct matrix * polys, struct kdTree* kd,
                     screen s, zbuffer zb,
                     double *view, color ambient,
-                    struct constants *reflect);
+                    struct constants *reflect,
+                    int shaderType);
 
 struct matrix* stlConvert(struct matrix* m, char* fileName);
 
@@ -37,6 +42,9 @@ struct matrix* stlConvert(struct matrix* m, char* fileName);
 void add_box( struct matrix * edges,
               double x, double y, double z,
               double width, double height, double depth );
+void add_plane( struct matrix * edges,
+  double x, double y, double z,
+  double width, double height);
 void add_sphere( struct matrix * edges,
                  double cx, double cy, double cz,
                  double r, int step );
