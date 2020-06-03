@@ -483,6 +483,16 @@ MESH STRING CO STRING STRING
   op[lastop].op.mesh.cs = add_symbol($5,SYM_MATRIX,m);
   lastop++;
 } |
+MESH CO STRING STRING
+{
+  lineno++;
+  op[lastop].opcode = MESH;
+  strcpy(op[lastop].op.mesh.name,$3);
+  op[lastop].op.mesh.constants = NULL;
+  m = (struct matrix *)new_matrix(4,4);
+  op[lastop].op.mesh.cs = add_symbol($4,SYM_MATRIX,m);
+  lastop++;
+}|
 
 MOVE DOUBLE DOUBLE DOUBLE STRING
 {

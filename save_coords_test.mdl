@@ -1,0 +1,29 @@
+push
+move 100 100 0
+save_coord_system sphereCoords
+pop
+push
+move 200 200 0
+save_coord_system boxCoords
+pop
+push
+move 300 300 0
+save_coord_system torusCoords
+pop
+push
+move 400 400 0
+save_coord_system cylinderCoords
+pop
+push
+move 300 100 0
+save_coord_system meshCoords
+pop
+
+sphere 0 0 0 50 sphereCoords
+box 0 0 0 50 50 50 boxCoords
+torus 0 0 0 25 50 torusCoords
+cylinder 0 0 0 50 50 cylinderCoords
+mesh :Utah_teapot_solid_binary.stl meshCoords
+
+display
+save save_coords_test.png

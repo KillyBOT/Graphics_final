@@ -424,15 +424,21 @@ void my_main() {
             //printf("\tconstants: %s",op[i].op.sphere.constants->name);
             reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
           }
-          if (op[i].op.sphere.cs != NULL) {
-            //printf("\tcs: %s",op[i].op.sphere.cs->name);
-          }
 
           add_sphere(tmp, op[i].op.sphere.d[0],
                      op[i].op.sphere.d[1],
                      op[i].op.sphere.d[2],
                      op[i].op.sphere.r, step_3d);
-          matrix_mult( peek(systems), tmp );
+
+          if (op[i].op.sphere.cs != NULL) {
+            //printf("\tcs: %s",op[i].op.sphere.cs->name);
+            matrix_mult( op[i].op.sphere.cs->s.m, tmp);
+          } else {
+            matrix_mult( peek(systems), tmp );
+          }
+
+          
+          
           draw_polygons(tmp, kd, t, zb, view, ambient,
                         reflect);
           tmp->lastcol = 0;
@@ -448,16 +454,22 @@ void my_main() {
             //printf("\tconstants: %s",op[i].op.torus.constants->name);
             reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
           }
-          if (op[i].op.torus.cs != NULL) {
-            //printf("\tcs: %s",op[i].op.torus.cs->name);
-          }
 
           add_torus(tmp,
                     op[i].op.torus.d[0],
                     op[i].op.torus.d[1],
                     op[i].op.torus.d[2],
                     op[i].op.torus.r0,op[i].op.torus.r1, step_3d);
-          matrix_mult( peek(systems), tmp );
+
+          if (op[i].op.torus.cs != NULL) {
+            //printf("\tcs: %s",op[i].op.torus.cs->name);
+            matrix_mult(op[i].op.torus.cs->s.m, tmp);
+          } else {
+            matrix_mult( peek(systems), tmp );
+
+          }
+
+          
           draw_polygons(tmp, kd, t, zb, view, ambient,
                         reflect);
           tmp->lastcol = 0;
@@ -474,16 +486,21 @@ void my_main() {
             //printf("\tconstants: %s",op[i].op.box.constants->name);
             reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
           }
-          if (op[i].op.box.cs != NULL) {
-            //printf("\tcs: %s",op[i].op.box.cs->name);
-          }
 
           add_box(tmp,
                   op[i].op.box.d0[0],op[i].op.box.d0[1],
                   op[i].op.box.d0[2],
                   op[i].op.box.d1[0],op[i].op.box.d1[1],
                   op[i].op.box.d1[2]);
-          matrix_mult( peek(systems), tmp );
+
+          if (op[i].op.box.cs != NULL) {
+            //printf("\tcs: %s",op[i].op.box.cs->name);
+            matrix_mult( op[i].op.box.cs->s.m, tmp);
+          } else {
+            matrix_mult( peek(systems), tmp );
+          }
+
+        
           draw_polygons(tmp, kd, t, zb, view, ambient,
                         reflect);
           tmp->lastcol = 0;
@@ -495,9 +512,6 @@ void my_main() {
           if (op[i].op.cylinder.constants != NULL){
             reflect = lookup_symbol(op[i].op.cylinder.constants->name)->s.c;
           }
-          if (op[i].op.cylinder.cs != NULL) {
-            //
-          }
 
           add_cylinder(tmp,
             op[i].op.cylinder.d[0],
@@ -507,7 +521,12 @@ void my_main() {
             op[i].op.cylinder.h,
             step_3d);
 
-          matrix_mult(peek(systems),tmp);
+          if (op[i].op.cylinder.cs != NULL) {
+            matrix_mult(op[i].op.cylinder.cs->s.m, tmp);
+          } else {
+            matrix_mult(peek(systems),tmp);
+          }
+
           draw_polygons(tmp, kd, t, zb, view, ambient, reflect);
 
           tmp->lastcol = 0;
@@ -523,12 +542,13 @@ void my_main() {
           kd = convert(tmp, op[i].op.mesh.name);
           //kd = kdNormalize(kd, view, light, ambient, reflect);
 
-          matrix_mult(peek(systems),tmp);
-          kd = kdTransform(kd, peek(systems));
-
-          //kd = kdNormalize(kd, view, light ,ambient, reflect);
-
-          //kdCheck(kd, tmp);
+          if(op[i].op.mesh.cs != NULL){
+            matrix_mult(op[i].op.mesh.cs->s.m, tmp);
+            kd = kdTransform(kd, op[i].op.mesh.cs->s.m);
+          } else {
+            matrix_mult(peek(systems),tmp);
+            kd = kdTransform(kd, peek(systems));
+          }
 
           draw_polygons(tmp, kd, t, zb, view, ambient, reflect);
           tmp->lastcol = 0;
@@ -655,6 +675,11 @@ void my_main() {
             save_extension(t, op[i].op.save.p->name);
             break;
           }
+        case SAVE_COORDS:
+
+          copy_matrix(peek(systems),lookup_symbol(op[i].op.save_coordinate_system.p->name)->s.m);
+
+          break;
         case DISPLAY:
           if(num_frames <= 1){
             //printf("Display");
