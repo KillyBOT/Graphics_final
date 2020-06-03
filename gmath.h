@@ -29,5 +29,6 @@ void add(double* vBase, double* vAdd);
 void normalize( double *vector );
 double dot_product( double *a, double *b );
 double *calculate_normal(struct matrix *polygons, int i);
+void print_vertex(double v[3]);
 
 #endif

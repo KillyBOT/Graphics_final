@@ -360,6 +360,36 @@ void my_main() {
 
   int shaderType = SHADER_PHONG;
 
+  int regCompile;
+  extern regex_t qF;
+  extern regex_t qFT;
+  extern regex_t qFN;
+  extern regex_t qFTN;
+
+  extern regex_t tF;
+  extern regex_t tFT;
+  extern regex_t tFN;
+  extern regex_t tFTN;
+
+  regCompile = 0;
+
+  regCompile = regcomp(&qF,"(([0-9]+) ){3}([0-9]+)", REG_EXTENDED);
+  regCompile = regcomp(&qFT, "(([0-9]+/[0-9]+) ){3}([0-9]+/[0-9]+)", REG_EXTENDED);
+  regCompile = regcomp(&qFN, "(([0-9]+//[0-9]+) ){3}([0-9]+//[0-9]+)", REG_EXTENDED);
+  regCompile = regcomp(&qFTN, "(([0-9]+/[0-9]+/[0-9]+) ){3}([0-9]+/[0-9]+/[0-9]+)", REG_EXTENDED);
+
+  regCompile = regcomp(&tF,"(([0-9]+) ){2}([0-9]+)", REG_EXTENDED);
+  regCompile = regcomp(&tFT,"(([0-9]+/[0-9]+) ){2}([0-9]+/[0-9]+)", REG_EXTENDED);
+  regCompile = regcomp(&tFN, "(([0-9]+//[0-9]+) ){2}([0-9]+//[0-9]+)", REG_EXTENDED);
+  regCompile = regcomp(&tFTN, "(([0-9]+/[0-9]+/[0-9]+) ){2}([0-9]+/[0-9]+/[0-9]+)", REG_EXTENDED);
+
+  if(regCompile){
+    printf("Regex expressions failed to compile! exiting...\n");
+    exit(1);
+  }
+
+
+
   //Lighting values here for easy access
   color ambient;
   ambient.red = 50;
@@ -425,7 +455,6 @@ void my_main() {
 
     for (i=0;i<lastop;i++) {
 
-      //printf("%d: ",i);
       switch (op[i].opcode)
         {
         case SPHERE:
@@ -449,7 +478,6 @@ void my_main() {
           } else {
             matrix_mult( peek(systems), tmp );
           }
-
           
           
           draw_polygons(tmp, kd, t, zb, view, ambient,
@@ -574,7 +602,7 @@ void my_main() {
           }
 
           kd = convert(tmp, op[i].op.mesh.name);
-          //kd = kdNormalize(kd, view, light, ambient, reflect);
+          kd = kdNormalize(kd, view, ambient, reflect);
 
           if(op[i].op.mesh.cs != NULL){
             matrix_mult(op[i].op.mesh.cs->s.m, tmp);
@@ -728,6 +756,7 @@ void my_main() {
             printf("Image saved! Check the output folder\n");
             break;
           }
+          break;
         case SAVE_COORDS:
 
           copy_matrix(peek(systems),lookup_symbol(op[i].op.save_coordinate_system.p->name)->s.m);
@@ -815,5 +844,14 @@ void my_main() {
       printf("Drawing complete! Check the output folder\n");
     }
   }
+
+  regfree(&qFTN);
+  regfree(&qFN);
+  regfree(&qFT);
+  regfree(&qF);
+  regfree(&tFTN);
+  regfree(&tFN);
+  regfree(&tFT);
+  regfree(&tF);
 
 }

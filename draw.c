@@ -744,7 +744,6 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   white.green = 255;
   white.blue = 255;
 
-
   if(kd == NULL || kd->changed == 0){
     //printf("No vertex normal table! Creating one...\n");
     kd = compute_vertex_normals(polygons);

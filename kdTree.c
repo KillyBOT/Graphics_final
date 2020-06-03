@@ -126,19 +126,25 @@ struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, color ambient,
 
 struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m){
 
-	struct matrix* mi = matrix_inverse(m);
-	struct matrix* mn = matrix_transpose(mi);
+	if(kd->root != NULL){
+		struct matrix* mi = matrix_inverse(m);
+		struct matrix* mn = matrix_transpose(mi);
 
-	free_matrix(mi);
+		free_matrix(mi);
 
-	kd->root = kdTransform_helper(kd->root, m, mn);
+		kd->root = kdTransform_helper(kd->root, m, mn);
 
-	struct kdTree* kdNew = kdCreate();
-	kdCopy(kdNew, kd);
-	kdFree(kd);
-	free_matrix(mn);
+		struct kdTree* kdNew = kdCreate();
+		kdCopy(kdNew, kd);
+		kdFree(kd);
+		free_matrix(mn);
 
-	return kdNew;
+		return kdNew;
+	}
+
+	return NULL;
+
+	
 }
 struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m, struct matrix* mn){
 	if(k->left != NULL) k->left = kdTransform_helper(k->left, m, mn);

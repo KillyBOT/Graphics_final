@@ -203,3 +203,7 @@ double *calculate_normal(struct matrix *polygons, int i) {
 
   return N;
 }
+
+void print_vertex(double v[3]){
+  printf("X: %lf\tY: %lf\tZ: %lf\n", v[0], v[1], v[2]);
+}

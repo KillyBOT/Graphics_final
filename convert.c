@@ -3,10 +3,12 @@
 #include "matrix.h"
 #include "draw.h"
 #include "kdTree.h"
+#include "gmath.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <regex.h>
 
 struct kdTree* convert(struct matrix* m, char* fileName){
 	FILE* f = fopen(fileName,"r");
@@ -26,6 +28,25 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 	double vTemp[3];
 	double vnTemp[3];
 	int bufferPlace = 0;
+	int done = 0;
+
+	int regCompile = 0;
+	int reti;
+	char regErrorBuffer[256];
+
+	extern regex_t qF;
+	extern regex_t qFT;
+	extern regex_t qFN;
+	extern regex_t qFTN;
+
+	extern regex_t tF;
+	extern regex_t tFT;
+	extern regex_t tFN;
+	extern regex_t tFTN;
+
+	//q = quadrilateral, t = triangle, F = faces included, T = texture included, N = Normal included
+
+	//printf("%s\n", "\\d\\/\\d\\/\\d \\d\\/\\d\\/\\d \\d\\/\\d\\/\\d \\d\\/\\d\\/\\d");
 
 	buffer = malloc(BUFFER_SIZE);
 
@@ -52,26 +73,15 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 				if(sBuffer[0] == 'v'){
 
-					// if(vCount == 0){
-					// 	fprintf(f,"polygon\n");
-					// }
-
-					//strsep(&buffer," ");
 					//printf("%s\n", buffer);
 
-					//vCount++;
 					sscanf(sBuffer,"vertex %lf %lf %lf", vertices, vertices+1, vertices+2);
 
 					//printf("%lf %lf %lf\n", vertices[0], vertices[1], vertices[2]);
 
-					//fprintf(f,"%lf %lf %lf ", vertices[0], vertices[1], vertices[2]);
 					add_point(m, vertices[0], vertices[1], vertices[2]);
 					kd = kdInsert(kd, vertices, vNormals);
 
-					// if(vCount >= 3){
-					// 	fprintf(f,"\n");
-					// 	vCount = 0;
-					// }
 				} else if(sBuffer[0] == 'f'){
 					sscanf(sBuffer,"facet normal %lf %lf %lf",vNormals, vNormals+1,vNormals+2);
 
@@ -125,6 +135,7 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 		struct matrix* vList = new_matrix(4, 4096);
 		struct matrix* vnList = new_matrix(4, 4096);
 		add_point(vList, 0, 0, 0);
+		add_point(vnList, 0, 0, 0);
 
 		char* lineType;
 		char* lengthCheck;
@@ -156,36 +167,12 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 					else if(!strcmp(lineType,"f")){
 
-						spaceNum = 0;
+						//printf("%s\n", sBuffer);
 
-						lengthCheck = strdup(sBuffer);
-						while(*lengthCheck != '\0'){
-							if(*lengthCheck == ' ') spaceNum++;
-							lengthCheck++;
-						}
 
-						if(spaceNum == 2){ //Triangle
-							sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-								vertices, textureCoords, vNormals,
-								vertices+1, textureCoords+1, vNormals+1,
-								vertices+2, textureCoords+2, vNormals+2);
+						reti = regexec(&qFTN, sBuffer, 0, NULL, 0);
+						if(!reti){
 
-							for(int n = 0; n < 3; n++){
-								add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
-
-								vTemp[0] = vList->m[0][(int)vertices[n]];
-								vTemp[1] = vList->m[1][(int)vertices[n]];
-								vTemp[2] = vList->m[2][(int)vertices[n]];
-
-								vnTemp[0] = vnList->m[0][(int)vNormals[n]];
-								vnTemp[1] = vnList->m[1][(int)vNormals[n]];
-								vnTemp[2] = vnList->m[2][(int)vNormals[n]];
-
-								kd = kdInsert(kd, vTemp, vnTemp);
-
-							}
-
-						} else { //Rectangle
 							sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
 								verticesLarge, textureCoordsLarge, vNormalsLarge,
 								verticesLarge+1, textureCoordsLarge+1, vNormalsLarge+1,
@@ -202,6 +189,10 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 								vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
 								vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
 								vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+
+								//print_vertex(vTemp);
+								//print_vertex(vnTemp);
+								//printf("\n");
 
 								kd = kdInsert(kd, vTemp, vnTemp);
 
@@ -223,16 +214,312 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 							}
 
-							// add_point(m, vList->m[0][(int)verticesLarge[0]], vList->m[1][(int)verticesLarge[0]], vList->m[2][(int)verticesLarge[0]]);
-							// add_point(m, vList->m[0][(int)verticesLarge[1]], vList->m[1][(int)verticesLarge[1]], vList->m[2][(int)verticesLarge[1]]);
-							// add_point(m, vList->m[0][(int)verticesLarge[2]], vList->m[1][(int)verticesLarge[2]], vList->m[2][(int)verticesLarge[2]]);
-
-							// add_point(m, vList->m[0][(int)verticesLarge[0]], vList->m[1][(int)verticesLarge[0]], vList->m[2][(int)verticesLarge[0]]);
-							// add_point(m, vList->m[0][(int)verticesLarge[2]], vList->m[1][(int)verticesLarge[2]], vList->m[2][(int)verticesLarge[2]]);
-							// add_point(m, vList->m[0][(int)verticesLarge[3]], vList->m[1][(int)verticesLarge[3]], vList->m[2][(int)verticesLarge[3]]);
+							done = 1;
+						} else if(!done || reti == REG_NOMATCH){
+							//printf("Failed to match qFTN\n");
+						} else if(!done){
+							regerror(reti, &qFTN, regErrorBuffer, sizeof(regErrorBuffer));
+							fprintf(stderr, "Match qFTN failed!\n");
+							exit(1);
 						}
 
+						if(!done){
+							reti = regexec(&qFN, sBuffer, 0, NULL, 0);
+							if(!reti){
+								sscanf(sBuffer, "%lf//%lf %lf//%lf %lf//%lf %lf//%lf",
+									verticesLarge, vNormalsLarge,
+									verticesLarge+1, vNormalsLarge+1,
+									verticesLarge+2, vNormalsLarge+2,
+									verticesLarge+3, vNormalsLarge+3);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+
+									vTemp[0] = vList->m[0][(int)verticesLarge[n]];
+									vTemp[1] = vList->m[1][(int)verticesLarge[n]];
+									vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+
+									vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
+									vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
+									vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+
+									kd = kdInsert(kd, vTemp, vnTemp);
+
+								}
+
+								for(int n = 0; n < 4; n++){
+									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+
+									vTemp[0] = vList->m[0][(int)verticesLarge[n]];
+									vTemp[1] = vList->m[1][(int)verticesLarge[n]];
+									vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+
+									vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
+									vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
+									vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+
+									kd = kdInsert(kd, vTemp, vnTemp);
+									if(n == 0) n++;
+
+								}
+
+								done = 1;
+							} else if(reti == REG_NOMATCH) {
+								//printf("Failed to match qFN\n");
+							} else {
+								regerror(reti, &qFN, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match qFN failed!\n");
+								exit(1);
+							}
+						}
+
+						if(!done){
+							reti = regexec(&qFT, sBuffer, 0, NULL, 0);
+							if(!reti){
+								sscanf(sBuffer, "%lf/%lf %lf/%lf %lf/%lf %lf/%lf",
+									verticesLarge, textureCoordsLarge,
+									verticesLarge+1, textureCoordsLarge+1,
+									verticesLarge+2, textureCoordsLarge+2,
+									verticesLarge+3, textureCoordsLarge+3);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+								}
+
+								for(int n = 0; n < 4; n++){
+									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									if(n == 0) n++;
+
+								}
+
+								done = 1;
+							} else if (reti == REG_NOMATCH){
+								//printf("Failed to match qFT\n");
+							} else {
+								regerror(reti, &qFT, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match qFT failed!\n");
+								exit(1);
+							}
+						}	
+
+						if(!done){
+							reti = regexec(&qF, sBuffer, 0, NULL, 0);
+							if(!reti){
+								sscanf(sBuffer, "%lf %lf %lf %lf",
+									verticesLarge,
+									verticesLarge+1,
+									verticesLarge+2,
+									verticesLarge+3);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+								}
+
+								for(int n = 0; n < 4; n++){
+									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									if(n == 0) n++;
+
+								}
+
+								done = 1;
+							} else if(reti == REG_NOMATCH){
+								//printf("Failed to match qF\n");
+							} else {
+								regerror(reti, &qF, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match qF failed!\n");
+								exit(1);
+							}
+						}
+
+						if(!done){
+							reti = regexec(&tFTN, sBuffer, 0, NULL, 0);
+							if(!reti){
+								sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
+									vertices, textureCoords, vNormals,
+									vertices+1, textureCoords+1, vNormals+1,
+									vertices+2, textureCoords+2, vNormals+2);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+
+									vTemp[0] = vList->m[0][(int)vertices[n]];
+									vTemp[1] = vList->m[1][(int)vertices[n]];
+									vTemp[2] = vList->m[2][(int)vertices[n]];
+
+									vnTemp[0] = vnList->m[0][(int)vNormals[n]];
+									vnTemp[1] = vnList->m[1][(int)vNormals[n]];
+									vnTemp[2] = vnList->m[2][(int)vNormals[n]];
+
+									kd = kdInsert(kd, vTemp, vnTemp);
+
+								}
+
+								done = 1;
+							} else if(reti == REG_NOMATCH){
+								//printf("Failed to match tFTN\n");
+							} else {
+								regerror(reti, &tFTN, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match tFTN failed!\n");
+								exit(1);
+							}
+						}
+
+						if(!done){
+							reti = regexec(&tFN, sBuffer, 0, NULL, 0);
+							if(!reti){
+								sscanf(sBuffer, "%lf//%lf %lf//%lf %lf//%lf",
+									vertices,vNormals,
+									vertices+1,vNormals+1,
+									vertices+2,vNormals+2);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+
+									vTemp[0] = vList->m[0][(int)vertices[n]];
+									vTemp[1] = vList->m[1][(int)vertices[n]];
+									vTemp[2] = vList->m[2][(int)vertices[n]];
+
+									vnTemp[0] = vnList->m[0][(int)vNormals[n]];
+									vnTemp[1] = vnList->m[1][(int)vNormals[n]];
+									vnTemp[2] = vnList->m[2][(int)vNormals[n]];
+
+									kd = kdInsert(kd, vTemp, vnTemp);
+
+								}
+
+								done = 1;
+							} else if(reti == REG_NOMATCH){
+								//printf("Failed to match tFN\n");
+							} else{
+								regerror(reti, &tFN, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match tFN failed!\n");
+								exit(1);
+							}
+						}
+
+						if(!done){
+							reti = regexec(&tFT, sBuffer, 0, NULL, 0);
+							if(!reti){
+								sscanf(sBuffer, "%lf/%lf %lf/%lf %lf/%lf",
+									vertices, textureCoords,
+									vertices+1, textureCoords+1,
+									vertices+2, textureCoords+2);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+
+								}
+
+								done = 1;
+							} else if(reti == REG_NOMATCH){
+								//printf("Failed to match tFT\n");
+							} else {
+								regerror(reti, &tFT, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match tFT failed!\n");
+								exit(1);
+							}
+
+							reti = regexec(&tF, sBuffer, 0, NULL, 0);
+							if(!done && !reti){
+								sscanf(sBuffer, "%lf %lf %lf",
+									vertices,
+									vertices+1,
+									vertices+2);
+
+								for(int n = 0; n < 3; n++){
+									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+								}
+
+								done = 1;
+							} else if(!done || reti == REG_NOMATCH){
+								//printf("Failed to match tF\n");
+							} else if(!done){
+								regerror(reti, &qFTN, regErrorBuffer, sizeof(regErrorBuffer));
+								fprintf(stderr, "Match tF failed!\n");
+								exit(1);
+							}
+						}
 						
+
+						
+
+						// spaceNum = 0;
+
+						// lengthCheck = strdup(sBuffer);
+						// while(*lengthCheck != '\0'){
+						// 	if(*lengthCheck == ' ') spaceNum++;
+						// 	lengthCheck++;
+						// }
+
+						// if(spaceNum == 2){ //Triangle
+						// 	sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
+						// 		vertices, textureCoords, vNormals,
+						// 		vertices+1, textureCoords+1, vNormals+1,
+						// 		vertices+2, textureCoords+2, vNormals+2);
+
+						// 	for(int n = 0; n < 3; n++){
+						// 		add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+
+						// 		vTemp[0] = vList->m[0][(int)vertices[n]];
+						// 		vTemp[1] = vList->m[1][(int)vertices[n]];
+						// 		vTemp[2] = vList->m[2][(int)vertices[n]];
+
+						// 		vnTemp[0] = vnList->m[0][(int)vNormals[n]];
+						// 		vnTemp[1] = vnList->m[1][(int)vNormals[n]];
+						// 		vnTemp[2] = vnList->m[2][(int)vNormals[n]];
+
+						// 		kd = kdInsert(kd, vTemp, vnTemp);
+
+						// 	}
+
+						// } else { //Rectangle
+						// 	sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
+						// 		verticesLarge, textureCoordsLarge, vNormalsLarge,
+						// 		verticesLarge+1, textureCoordsLarge+1, vNormalsLarge+1,
+						// 		verticesLarge+2, textureCoordsLarge+2, vNormalsLarge+2,
+						// 		verticesLarge+3, textureCoordsLarge+3, vNormalsLarge+3);
+
+						// 	for(int n = 0; n < 3; n++){
+						// 		add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+
+						// 		vTemp[0] = vList->m[0][(int)verticesLarge[n]];
+						// 		vTemp[1] = vList->m[1][(int)verticesLarge[n]];
+						// 		vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+
+						// 		vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
+						// 		vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
+						// 		vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+
+						// 		kd = kdInsert(kd, vTemp, vnTemp);
+
+						// 	}
+
+						// 	for(int n = 0; n < 4; n++){
+						// 		add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+
+						// 		vTemp[0] = vList->m[0][(int)verticesLarge[n]];
+						// 		vTemp[1] = vList->m[1][(int)verticesLarge[n]];
+						// 		vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+
+						// 		vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
+						// 		vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
+						// 		vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+
+						// 		kd = kdInsert(kd, vTemp, vnTemp);
+						// 		if(n == 0) n++;
+
+						// 	}
+
+						// 	// add_point(m, vList->m[0][(int)verticesLarge[0]], vList->m[1][(int)verticesLarge[0]], vList->m[2][(int)verticesLarge[0]]);
+						// 	// add_point(m, vList->m[0][(int)verticesLarge[1]], vList->m[1][(int)verticesLarge[1]], vList->m[2][(int)verticesLarge[1]]);
+						// 	// add_point(m, vList->m[0][(int)verticesLarge[2]], vList->m[1][(int)verticesLarge[2]], vList->m[2][(int)verticesLarge[2]]);
+
+						// 	// add_point(m, vList->m[0][(int)verticesLarge[0]], vList->m[1][(int)verticesLarge[0]], vList->m[2][(int)verticesLarge[0]]);
+						// 	// add_point(m, vList->m[0][(int)verticesLarge[2]], vList->m[1][(int)verticesLarge[2]], vList->m[2][(int)verticesLarge[2]]);
+						// 	// add_point(m, vList->m[0][(int)verticesLarge[3]], vList->m[1][(int)verticesLarge[3]], vList->m[2][(int)verticesLarge[3]]);
+						// }
+
+
 					}
 
 				}

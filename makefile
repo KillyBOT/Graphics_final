@@ -42,7 +42,7 @@ stack.o: stack.c stack.h matrix.h
 hashTable.o: hashTable.c hashTable.h
 	$(CC) $(CFLAGS) -c hashTable.c
 
-convert.o: convert.c ml6.h matrix.h draw.h kdTree.h convert.h
+convert.o: convert.c ml6.h matrix.h draw.h kdTree.h convert.h gmath.h
 	$(CC) $(CFLAGS) -c convert.c
 
 kdTree.o: kdTree.c kdTree.h gmath.h matrix.h draw.h
