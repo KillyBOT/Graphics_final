@@ -221,6 +221,7 @@ struct vary_node ** second_pass() {
   double currentVal;
   double startVal;
   double endVal;
+  int changed;
 
   for(int i = 0; i < lastop; i++){
     switch(op[i].opcode){
@@ -234,7 +235,11 @@ struct vary_node ** second_pass() {
 
         if(lookup_symbol(op[i].op.vary.p->name) == NULL) add_symbol(op[i].op.vary.p->name, SYM_VALUE, 0);
 
+        //printf("%s\n", op[i].op.vary.p->name);
+
         for(int f = (int)op[i].op.vary.start_frame; f <= (int)op[i].op.vary.end_frame; f++){
+
+          changed = 0;
 
           curr = knobs[f];
 
@@ -246,14 +251,15 @@ struct vary_node ** second_pass() {
             knobs[f]->next = NULL;
           }
           else {
-            while(curr->next != NULL && !strcmp(curr->name,op[i].op.vary.p->name)){
+            while(curr->next != NULL){
+              if(!strcmp(curr->name,op[i].op.vary.p->name)){
+                curr->value = currentVal;
+                changed = 0;
+              }
               curr = curr->next;
             }
 
-            if(!strcmp(curr->name,op[i].op.vary.p->name)){
-              curr->value = currentVal;
-            }
-            else if(curr->next == NULL){
+            if(!changed && curr->next == NULL){
               curr->next = malloc(sizeof(struct vary_node));
 
               strcpy(curr->next->name, op[i].op.vary.p->name);
@@ -441,6 +447,7 @@ void my_main() {
   for(f = 0; f < num_frames; f++){
 
     systems = new_stack();
+    ident(peek(systems));
     tmp = new_matrix(4, 1024);
     clear_screen( t );
     clear_zbuffer(zb);
@@ -449,7 +456,7 @@ void my_main() {
 
     while(curr != NULL){
       lookup_symbol(curr->name)->s.value = curr->value;
-      // printf("%s %d %lf %lf\n", curr->name,f, lookup_symbol(curr->name)->s.value, curr->value);
+      //printf("%s %d %lf %lf\n", curr->name,f, lookup_symbol(curr->name)->s.value, curr->value);
       curr = curr->next;
     }
 
@@ -602,7 +609,11 @@ void my_main() {
           }
 
           kd = convert(tmp, op[i].op.mesh.name);
-          kd = kdNormalize(kd, view, ambient, reflect);
+          //kd = kdNormalize(kd, view, ambient, reflect);
+          //print_matrix(tmp);
+
+          //kdPrint(kd);
+          //printf("###########################################################\n");
 
           if(op[i].op.mesh.cs != NULL){
             matrix_mult(op[i].op.mesh.cs->s.m, tmp);
@@ -611,6 +622,9 @@ void my_main() {
             matrix_mult(peek(systems),tmp);
             kd = kdTransform(kd, peek(systems));
           }
+
+          //print_matrix(tmp);
+          //kdPrint(kd);
 
           draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
           tmp->lastcol = 0;
@@ -756,7 +770,6 @@ void my_main() {
             printf("Image saved! Check the output folder\n");
             break;
           }
-          break;
         case SAVE_COORDS:
 
           copy_matrix(peek(systems),lookup_symbol(op[i].op.save_coordinate_system.p->name)->s.m);

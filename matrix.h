@@ -33,7 +33,7 @@ void print_matrix(struct matrix *m);
 void ident(struct matrix *m);
 void matrix_mult(struct matrix *a, struct matrix *b);
 
-int matrix_det(struct matrix* m);
+double matrix_det(struct matrix* m);
 struct matrix* matrix_minor(struct matrix* m);
 struct matrix* matrix_transpose(struct matrix* m);
 struct matrix* matrix_adjugate(struct matrix* m);

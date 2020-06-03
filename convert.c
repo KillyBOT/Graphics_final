@@ -77,15 +77,15 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 					sscanf(sBuffer,"vertex %lf %lf %lf", vertices, vertices+1, vertices+2);
 
-					//printf("%lf %lf %lf\n", vertices[0], vertices[1], vertices[2]);
+					print_vertex(vertices);
 
 					add_point(m, vertices[0], vertices[1], vertices[2]);
 					kd = kdInsert(kd, vertices, vNormals);
 
 				} else if(sBuffer[0] == 'f'){
+					printf("Normal\n");
 					sscanf(sBuffer,"facet normal %lf %lf %lf",vNormals, vNormals+1,vNormals+2);
-
-					//printf("%lf %lf %lf\n", vNormals[0], vNormals[1], vNormals[2]);
+					print_vertex(vNormals);
 				}
 				//printf("\n");
 			}

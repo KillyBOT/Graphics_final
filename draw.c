@@ -738,11 +738,11 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
 
   double* normal;
 
-  color white;
+  color meshColor;
 
-  white.red = 255;
-  white.green = 255;
-  white.blue = 255;
+  meshColor.red = 255;
+  meshColor.green = 255;
+  meshColor.blue = 255;
 
   if(kd == NULL || kd->changed == 0){
     //printf("No vertex normal table! Creating one...\n");
@@ -767,13 +767,15 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
     normalize(normal);
     if ( normal[2] > 0 ) {
 
+      //printf("%lf %lf %lf\n",polygons->m[0][point],polygons->m[1][point],polygons->m[2][point]);
+
       // get color value only if front facing
       //color i = get_lighting(normal, view, ambient, light, areflect, dreflect, sreflect);
 
       if(shaderType == SHADER_GOURAUD) scanline_convert_gouraud(polygons, point, s, zb, kd);
       else if(shaderType == SHADER_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, view, ambient, reflect);
       else if(shaderType == SHADER_FLAT) scanline_convert_flat(polygons, point, s, zb, view, ambient, reflect, normal);
-      else if(shaderType == SHADER_WIREFRAME) draw_wireframe(polygons,point,s,zb,white);
+      else if(shaderType == SHADER_WIREFRAME) draw_wireframe(polygons,point,s,zb,meshColor);
 
       /* draw_line( polygons->m[0][point], */
       /*            polygons->m[1][point], */

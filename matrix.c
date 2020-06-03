@@ -352,7 +352,7 @@ void copy_matrix(struct matrix *a, struct matrix *b) {
       b->m[r][c] = a->m[r][c];  
 }
 
-int matrix_det(struct matrix* m){
+double matrix_det(struct matrix* m){
 
   if(m->rows > 4 || m->cols > 4 || m->rows < 2 || m->cols < 2){
     printf("Error! I was too lazy to program in a way to do nxn determinants so you\'re stuck with this.\n");
@@ -364,9 +364,9 @@ int matrix_det(struct matrix* m){
 
   else {
 
-    int sign = 1;
-    int currentTop = 0;
-    int final = 0;
+    double sign = 1;
+    double currentTop = 0;
+    double final = 0;
     struct matrix* tmp;
     int colToAdd = 0;
 
@@ -388,8 +388,6 @@ int matrix_det(struct matrix* m){
         }
       }
 
-
-
       final += sign * currentTop * matrix_det(tmp);
       sign *= -1;
       tmp->lastcol = 0;
@@ -404,6 +402,7 @@ int matrix_det(struct matrix* m){
 
 struct matrix* matrix_minor(struct matrix* m){
 
+  //print_matrix(m);
   struct matrix* final = new_matrix(m->rows, m->cols);
   copy_matrix(m,final);
   struct matrix* tmp = new_matrix(m->rows-1,m->cols-1);
@@ -432,13 +431,16 @@ struct matrix* matrix_minor(struct matrix* m){
         }
         
       }
-
-      final->m[excludeRow][excludeCol] = matrix_det(tmp);
+      //print_matrix(tmp);
+      //printf("%lf\n\n", matrix_det(tmp));
+      final->m[excludeRow][excludeCol] = pow(-1,excludeRow+1+excludeCol+1)*matrix_det(tmp);
 
     }
   }
 
   free_matrix(tmp);
+
+  //print_matrix(final);
 
   return final;
 }
@@ -459,23 +461,19 @@ struct matrix* matrix_transpose(struct matrix* m){
 struct matrix* matrix_adjugate(struct matrix* m){
   struct matrix* minor = matrix_minor(m);
 
-  int sign = 1;
-
-  for(int r = 0; r < minor->rows; r++){
-    for(int c = 0; c < minor->cols; c++){
-      minor->m[r][c] *= sign;
-      sign *= -1;
-    }
-    sign *= -1;
-  }
-
   struct matrix* final = matrix_transpose(minor);
+
+  //print_matrix(final);
+
+  free_matrix(minor);
 
   return final;
 }
 
 struct matrix* matrix_inverse(struct matrix* m){
+  //print_matrix(m);
   struct matrix* inverse = matrix_adjugate(m);
+  //print_matrix(inverse);
 
   double det = matrix_det(m);
   det = 1.0 / det;
@@ -485,6 +483,8 @@ struct matrix* matrix_inverse(struct matrix* m){
       inverse->m[r][c] *= det;
     }
   }
+
+  //print_matrix(inverse);
 
   return inverse;
 }

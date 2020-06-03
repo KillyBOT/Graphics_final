@@ -46,6 +46,8 @@ color get_lighting( double *normal, double *view, color alight, struct constants
       light[LOCATION][1] = symtab[n].s.l->l[1];
       light[LOCATION][2] = symtab[n].s.l->l[2];
 
+      normalize(light[LOCATION]);
+
       light[COLOR][RED] = symtab[n].s.l->c[RED];
       light[COLOR][GREEN] = symtab[n].s.l->c[GREEN];
       light[COLOR][BLUE] = symtab[n].s.l->c[BLUE];
@@ -53,7 +55,7 @@ color get_lighting( double *normal, double *view, color alight, struct constants
       d = calculate_diffuse( light, reflect, normal );
       s = calculate_specular( light, reflect, view, normal );
 
-      //printf("%d %d\n", d, s);
+      //printf("%d %d %d\t %d %d %d\n", d.red, d.green, d.blue, s.red, s.green, s.blue);
 
       i.red += d.red + s.red;
       i.green += d.green + s.green;
@@ -61,9 +63,11 @@ color get_lighting( double *normal, double *view, color alight, struct constants
 
       //printf("%lf %lf %lf %lf %lf %lf\n", light[LOCATION][0], light[LOCATION][1], light[LOCATION][2], light[COLOR][0], light[COLOR][1], light[COLOR][2]);
 
-      //limit_color(&i);
+      limit_color(&i);
     }
   }
+
+  //printf("%d %d %d\n", i.red,i.green,i.blue);
 
   limit_color(&i);
 
@@ -87,7 +91,6 @@ color calculate_diffuse(double light[2][3], struct constants *reflect, double *n
   lvector[0] = light[LOCATION][0];
   lvector[1] = light[LOCATION][1];
   lvector[2] = light[LOCATION][2];
-  normalize(lvector);
 
   dot = dot_product(normal, lvector);
 
@@ -107,7 +110,6 @@ color calculate_specular(double light[2][3], struct constants *reflect, double *
   lvector[0] = light[LOCATION][0];
   lvector[1] = light[LOCATION][1];
   lvector[2] = light[LOCATION][2];
-  normalize(lvector);
 
   result = 2 * dot_product(normal, lvector);
   n[0] = (normal[0] * result) - lvector[0];
