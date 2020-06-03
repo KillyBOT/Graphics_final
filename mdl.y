@@ -749,7 +749,7 @@ SAVE_KNOBS STRING
 {
   lineno++;
   op[lastop].opcode = SAVE_KNOBS;
-  op[lastop].op.save_knobs.p = add_symbol($2,SYM_STRING,0);
+  op[lastop].op.save_knobs.p = add_symbol($2,SYM_KNOBLIST,0);
   lastop++;
 }|
 
@@ -822,6 +822,17 @@ AMBIENT DOUBLE DOUBLE DOUBLE
   lastop++;
 }|
 
+AMBIENT DOUBLE DOUBLE DOUBLE STRING
+{
+  lineno++;
+  op[lastop].opcode = AMBIENT;
+  op[lastop].op.ambient.c[0] = $2;
+  op[lastop].op.ambient.c[1] = $3;
+  op[lastop].op.ambient.c[2] = $4;
+  op[lastop].op.ambient.p = add_symbol($5, SYM_VALUE, 0);
+  lastop++;
+}|
+
 GENERATE_RAYFILES
 {
   lineno++;
@@ -855,8 +866,8 @@ int main(int argc, char **argv) {
   //COMMENT OUT PRINT_PCODE AND UNCOMMENT
   //MY_MAIN IN ORDER TO RUN YOUR CODE
 
-  print_pcode();
-  //my_main();
+  //print_pcode();
+  my_main();
 
   return 0;
 }

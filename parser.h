@@ -23,6 +23,7 @@ struct command
       double c[4];
     } light;
     struct {
+      SYMTAB* p;
       double c[4];
     } ambient;
     struct {

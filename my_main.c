@@ -81,6 +81,13 @@ void first_pass() {
 
   num_frames = 1;
 
+  struct vary_node* knobs = NULL;
+  struct vary_node* curr;
+  struct vary_node* prev = NULL;
+
+  char* knobName;
+  double knobVal;
+
   for(int i=0;i<lastop;i++){
     //printf("%d: ", i);
     switch(op[i].opcode){
@@ -100,9 +107,62 @@ void first_pass() {
 
         break;
 
+      case SET:
+
+        if(lookup_symbol(op[i].op.set.p->name) == NULL){
+          printf("Adding %s\n", op[i].op.set.p->name);
+          add_symbol(op[i].op.set.p->name,SYM_VALUE,0);
+        }
+
+        set_value(lookup_symbol(op[i].op.set.p->name),op[i].op.set.val);
+
+        break;
+
       case VARY:
 
         varyFound = 1;
+
+        break;
+
+      case TWEEN:
+
+        varyFound = 1;
+
+        break;
+
+      case SAVE_KNOBS:
+
+        knobs = malloc(sizeof(struct vary_node));
+        knobs->next = NULL;
+        curr = knobs;
+
+        for(int n = 0; n < lastsym; n++){
+          if(symtab[n].type == SYM_VALUE){
+
+            if(curr == NULL) curr = malloc(sizeof(struct vary_node));
+
+            strcpy(curr->name,symtab[n].name);
+            curr->value = symtab[n].s.value;
+            curr->next = NULL;
+
+            if(prev != NULL) prev->next = curr;
+
+            prev = curr;
+            curr = curr->next;
+
+          }
+        }
+        prev = NULL;
+
+        //if(lookup_symbol(op[i].op.save_knobs.p->name) == NULL) add_symbol(op[i].op.save_knobs.p->name,SYM_KNOBLIST,knobs);
+        lookup_symbol(op[i].op.save_knobs.p->name)->s.v = knobs;
+        //printf("%s\n", op[i].op.save_knobs.p->name);
+        //printf("%lf\n",lookup_symbol(op[i].op.save_knobs.p->name)->s.v->value);
+        //if(lookup_symbol(op[i].op.save_knobs.p->name)->s.v->next != NULL) printf("Somethings wrong...\n");
+        //curr = NULL;
+        //knobs = NULL;
+
+        //print_symtab();
 
         break;
     }
@@ -147,20 +207,29 @@ struct vary_node ** second_pass() {
   extern char name[128];
 
   struct vary_node *curr = NULL;
+  struct vary_node* curr_tween = NULL;
+  struct vary_node* curr_tween_knob = NULL;
+  struct vary_node* startKnob;
+  struct vary_node* endKnob;
   struct vary_node **knobs;
   knobs = (struct vary_node **)calloc(num_frames, sizeof(struct vary_node *));
 
   double valChange;
   double currentVal;
+  double startVal;
+  double endVal;
 
   for(int i = 0; i < lastop; i++){
     switch(op[i].opcode){
       case VARY:
 
-        valChange = (op[i].op.vary.end_val - op[i].op.vary.start_val)/(op[i].op.vary.end_frame - op[i].op.vary.start_frame);
-        currentVal = op[i].op.vary.start_val;
+        startVal = op[i].op.vary.start_val;
+        endVal = op[i].op.vary.end_val;
 
-        add_symbol(op[i].op.vary.p->name, SYM_VALUE, 0);
+        valChange = (endVal - startVal)/(op[i].op.vary.end_frame - op[i].op.vary.start_frame);
+        currentVal = startVal;
+
+        if(lookup_symbol(op[i].op.vary.p->name) == NULL) add_symbol(op[i].op.vary.p->name, SYM_VALUE, 0);
 
         for(int f = (int)op[i].op.vary.start_frame; f <= (int)op[i].op.vary.end_frame; f++){
 
@@ -189,6 +258,69 @@ struct vary_node ** second_pass() {
         }
 
         break;
+
+      case TWEEN:
+
+        //print_symtab();
+
+        curr_tween = lookup_symbol(op[i].op.tween.knob_list0->name)->s.v;
+        //curr_tween = curr_tween->next;
+        //if(curr_tween->next != NULL) printf("Test\n");
+
+        while(curr_tween != NULL){
+
+          //printf("%s %lf\n", curr_tween->name, curr_tween->value);
+
+          startKnob = curr_tween;
+
+          endKnob = lookup_symbol(op[i].op.tween.knob_list1->name)->s.v;
+
+          if(strcmp(endKnob->name,startKnob->name) != 0){
+            while (!strcmp(endKnob->name,startKnob->name)) endKnob = endKnob->next;
+          }
+
+          startVal = startKnob->value;
+          endVal = endKnob->value;
+
+          valChange = (endVal - startVal)/(op[i].op.tween.end_frame - op[i].op.tween.start_frame);
+          currentVal = startVal;
+
+          if(lookup_symbol(startKnob->name) == NULL) add_symbol(startKnob->name, SYM_VALUE, 0);
+
+          for(int f = (int)op[i].op.tween.start_frame; f <= (int)op[i].op.tween.end_frame; f++){
+
+            curr = knobs[f];
+
+            if(curr == NULL){
+              knobs[f] = malloc(sizeof(struct vary_node));
+
+              strcpy(knobs[f]->name,startKnob->name);
+              knobs[f]->value = currentVal;
+              knobs[f]->next = NULL;
+            }
+            else {
+              while(curr->next != NULL && !strcmp(curr->name,startKnob->name)){
+                curr = curr->next;
+              }
+
+              if(curr->next == NULL){
+                curr->next = malloc(sizeof(struct vary_node));
+
+                strcpy(curr->next->name, startKnob->name);
+                curr->next->value = currentVal;
+                curr->next->next = NULL;
+              } else {
+                curr->value = currentVal;
+
+              }        
+            }
+
+            currentVal += valChange;
+          }
+
+
+          curr_tween = curr_tween->next;
+        }
     }
   }
 
@@ -274,6 +406,7 @@ void my_main() {
 
     while(curr != NULL){
       lookup_symbol(curr->name)->s.value = curr->value;
+      // printf("%s %d %lf %lf\n", curr->name,f, lookup_symbol(curr->name)->s.value, curr->value);
       curr = curr->next;
     }
 
@@ -495,16 +628,17 @@ void my_main() {
           add_symbol(op[i].op.light.p->name,SYM_LIGHT,tmpLight);
 
           break;
-        case SET:
-
-          set_value(op[i].op.set.p,op[i].op.set.val);
-
-          break;
         case AMBIENT:
 
           white.r[AMBIENT_R] = op[i].op.ambient.c[0];
           white.g[AMBIENT_R] = op[i].op.ambient.c[1];
           white.b[AMBIENT_R] = op[i].op.ambient.c[2];
+
+          if(op[i].op.ambient.p != NULL){
+            white.r[AMBIENT_R] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
+            white.g[AMBIENT_R] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
+            white.b[AMBIENT_R] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
+          }
 
           break;
         case PUSH:

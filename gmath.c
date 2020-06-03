@@ -61,7 +61,6 @@ color get_lighting( double *normal, double *view, color alight, struct constants
 
       //printf("%lf %lf %lf %lf %lf %lf\n", light[LOCATION][0], light[LOCATION][1], light[LOCATION][2], light[COLOR][0], light[COLOR][1], light[COLOR][2]);
 
-
       //limit_color(&i);
     }
   }

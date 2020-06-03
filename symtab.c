@@ -35,6 +35,14 @@ void print_light(struct light *p)
          p->c[0],p->c[1],p->c[2]);
 }
 
+void print_knobs(struct vary_node* v){
+  struct vary_node* curr = v;
+  while(curr != NULL){
+    printf("Name: %s\tValue: %lf\n", curr->name,curr->value);
+    curr = curr->next;
+  }
+}
+
 
 void print_symtab()
 {
@@ -61,8 +69,12 @@ void print_symtab()
           printf("value: %6.2f\n", symtab[i].s.value);
           break;
         case SYM_FILE:
-          printf("Type: SYM_VALUE\n");
+          printf("Type: SYM_STRING\n");
           printf("Name: %s\n",symtab[i].name);
+          break;
+        case SYM_KNOBLIST:
+          printf("Type: SYM_KNOBLIST\n");
+          print_knobs(symtab[i].s.v);
         }
       printf("\n");
     }
@@ -102,9 +114,12 @@ SYMTAB *add_symbol(char *name, int type, void *data)
       t->s.l = (struct light *)data;
       break;
     case SYM_VALUE:
-      t->s.value = (double)(int)data;
+      t->s.value = (double)((int)data);
       break;
     case SYM_FILE:
+      break;
+    case SYM_KNOBLIST:
+      t->s.v = (struct vary_node*)data;
       break;
     }
   return (SYMTAB *)&(symtab[lastsym-1]);

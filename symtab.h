@@ -8,6 +8,7 @@
 #define SYM_LIGHT 4
 #define SYM_FILE   5
 #define SYM_STRING 5
+#define SYM_KNOBLIST 6
 
 #define AMBIENT_R 0
 #define DIFFUSE_R 1
@@ -36,6 +37,7 @@ typedef struct
     struct constants *c;
     struct light *l;
     double value;
+    struct vary_node* v;
   } s;
 } SYMTAB;
 
@@ -46,6 +48,7 @@ SYMTAB *lookup_symbol(char *name);
 SYMTAB *add_symbol(char *name, int type, void *data);
 void print_constants(struct constants *p);
 void print_light(struct light *p);
+void print_knobs(struct vary_node* v);
 void print_symtab();
 SYMTAB *add_symbol(char *name, int type, void *data);
 void set_value(SYMTAB *p, double value);

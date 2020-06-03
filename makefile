@@ -3,9 +3,6 @@ CFLAGS= -g
 LDFLAGS= -lm
 CC= gcc
 
-run: parser
-	./mdl face.mdl
-
 parser: lex.yy.c y.tab.c y.tab.h $(OBJECTS)
 	gcc -o mdl $(CFLAGS) lex.yy.c y.tab.c $(OBJECTS) $(LDFLAGS)
 
