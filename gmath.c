@@ -22,7 +22,7 @@
 
 
 //lighting functions
-color get_lighting( double *normal, double *view, color alight, struct constants *reflect) {
+color get_lighting( double *normal, double *view, color alight, struct constants *reflect, double specExp) {
 
   color a, d, s, i;
   //normalize(normal);
@@ -53,7 +53,7 @@ color get_lighting( double *normal, double *view, color alight, struct constants
       light[COLOR][BLUE] = symtab[n].s.l->c[BLUE];
 
       d = calculate_diffuse( light, reflect, normal );
-      s = calculate_specular( light, reflect, view, normal );
+      s = calculate_specular( light, reflect, view, normal, specExp);
 
       //printf("%d %d %d\t %d %d %d\n", d.red, d.green, d.blue, s.red, s.green, s.blue);
 
@@ -101,7 +101,7 @@ color calculate_diffuse(double light[2][3], struct constants *reflect, double *n
   return d;
 }
 
-color calculate_specular(double light[2][3], struct constants *reflect, double *view, double *normal ) {
+color calculate_specular(double light[2][3], struct constants *reflect, double *view, double *normal, double specExp) {
   color s;
   double lvector[3];
   double result;
@@ -118,7 +118,7 @@ color calculate_specular(double light[2][3], struct constants *reflect, double *
 
   result = dot_product(n, view );
   result = result > 0 ? result : 0;
-  result = pow( result, SPECULAR_EXP );
+  result = pow( result, specExp );
 
   s.red = (int)(light[COLOR][RED] * reflect->r[SPECULAR_R] * result);
   s.green = (int)(light[COLOR][GREEN] * reflect->g[SPECULAR_R] * result);

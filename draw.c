@@ -9,6 +9,7 @@
 #include "gmath.h"
 #include "symtab.h"
 #include "kdTree.h"
+#include "material.h"
 
 /*======== void draw_scanline() ==========
   Inputs: struct matrix *points
@@ -71,7 +72,7 @@ void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s
 }
 
 void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, double* v0, double* v1,
-  double* view, color ambient, struct constants* reflect) {
+  double* view, color ambient, struct constants* reflect, double specExp) {
 
   int tempX, tempZ;
   double v0f[3];
@@ -129,7 +130,7 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
     set(vn, v);
     //normalize(vn);
 
-    c = get_lighting(v, view, ambient, reflect);
+    c = get_lighting(v, view, ambient, reflect, specExp);
 
     // finalV[0] = x;
     // finalV[1] = y;
@@ -349,7 +350,7 @@ void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer z
 }
 
 void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd, 
-  double* view, color ambient, struct constants* reflect) {
+  double* view, color ambient, struct constants* reflect, double specExp) {
 
   int top, mid, bot, y;
   double topV[3], midV[3], botV[3];
@@ -478,7 +479,7 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
     //normalize(v1n);
     //printf("%f %f %f %f %f %f\n%d %d %d %d %d %d\n",c0R, c0G, c0B, c1R, c1G, c1B,c0.red,c0.green,c0.blue,c1.red,c1.green,c1.blue);
 
-    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0, v1, view, ambient, reflect);
+    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0, v1, view, ambient, reflect, specExp);
     //printf("%f %f %f\n", v0[0], v0[1], v0[2]);
 
     x0+= dx0;
@@ -500,7 +501,7 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
 }
 
 void scanline_convert_flat( struct matrix *points, int i, screen s, zbuffer zb, 
-  double* view, color ambient, struct constants* reflect, double sNormal[3]) {
+  double* view, color ambient, struct constants* reflect, double specExp, double sNormal[3]) {
 
   int top, mid, bot, y;
   int distance0, distance1, distance2;
@@ -515,7 +516,7 @@ void scanline_convert_flat( struct matrix *points, int i, screen s, zbuffer zb,
 
   color c;
 
-  c = get_lighting(sNormal,view, ambient, reflect);
+  c = get_lighting(sNormal,view, ambient, reflect, specExp);
 
   // Alas random color, we hardly knew ye
   /* color c; */
@@ -746,10 +747,12 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons){
   Goes through polygons 3 points at a time, drawing
   lines connecting each points to create bounding triangles
   ====================*/
-void draw_polygons( struct matrix *polygons, struct kdTree* kd,
+void draw_polygons( struct matrix *polygons, struct matrix* materials,
+                    struct kdTree* kd,
                     screen s, zbuffer zb,
                     double *view, color ambient,
                     struct constants* reflect,
+                    double specExp,
                     int shaderType) {
   
   if ( polygons->lastcol < 3 ) {
@@ -762,10 +765,14 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
 
   double drawPercent = 0;
   double percentChange = 1.0 / (double)(polygons->lastcol/3);
+  struct constants finalConstants;
+  int finalSpecExp;
+  int currentMaterialID, prevMaterialID;
 
   double* normal;
 
   color meshColor;
+  struct material* currentMaterial;
 
   meshColor.red = 255;
   meshColor.green = 255;
@@ -777,10 +784,12 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
     kd = compute_vertex_normals(polygons);
   } 
 
-  kd = kdNormalize(kd, view, ambient, reflect);
+  kd = kdNormalize(kd, view, ambient, reflect, specExp);
   //kdCheck(kd, polygons);
 
   //kdPrint(kd);
+
+  prevMaterialID = -1;
 
   drawPercent = 0;
   for(point = 0; point < polygons->lastcol-2; point+=3){
@@ -791,6 +800,7 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
 
     drawPercent += percentChange;
 
+
     normal = calculate_normal(polygons,point);
     normalize(normal);
     if ( normal[2] > 0 ) {
@@ -800,9 +810,53 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
       // get color value only if front facing
       //color i = get_lighting(normal, view, ambient, light, areflect, dreflect, sreflect);
 
+      if(materials != NULL){
+        //print_matrix(materials);
+        //printf("%d\n", (int)materials->m[2][point]);
+        //printf("%s\n", find_material_name((int)materials->m[2][point]));
+        currentMaterial = find_material(find_material_name((int)materials->m[2][point]));
+        currentMaterialID = currentMaterial->id;
+        //printf("Test\n");
+
+        finalConstants.r[AMBIENT_R] = currentMaterial->ka[0];
+        finalConstants.g[AMBIENT_R] = currentMaterial->ka[1];
+        finalConstants.b[AMBIENT_R] = currentMaterial->ka[2];
+
+        finalConstants.r[DIFFUSE_R] = currentMaterial->kd[0];
+        finalConstants.g[DIFFUSE_R] = currentMaterial->kd[1];
+        finalConstants.b[DIFFUSE_R] = currentMaterial->kd[2];
+
+        finalConstants.r[SPECULAR_R] = currentMaterial->ks[0];
+        finalConstants.g[SPECULAR_R] = currentMaterial->ks[1];
+        finalConstants.b[SPECULAR_R] = currentMaterial->ks[2];
+
+        finalSpecExp = currentMaterial->ns;
+
+        if(prevMaterialID != currentMaterialID){
+          kd = kdNormalize(kd, view, ambient, &finalConstants, currentMaterial->ns);
+          prevMaterialID = currentMaterialID;
+        }
+      } else {
+        
+        finalConstants.r[AMBIENT_R] = reflect->r[AMBIENT_R];
+        finalConstants.g[AMBIENT_R] = reflect->g[AMBIENT_R];
+        finalConstants.b[AMBIENT_R] = reflect->b[AMBIENT_R];
+
+        finalConstants.r[DIFFUSE_R] = reflect->r[DIFFUSE_R];
+        finalConstants.g[DIFFUSE_R] = reflect->g[DIFFUSE_R];
+        finalConstants.b[DIFFUSE_R] = reflect->b[DIFFUSE_R];
+
+        finalConstants.r[SPECULAR_R] = reflect->r[SPECULAR_R];
+        finalConstants.g[SPECULAR_R] = reflect->g[SPECULAR_R];
+        finalConstants.b[SPECULAR_R] = reflect->b[SPECULAR_R];
+
+        finalSpecExp = specExp;
+
+      }
+
       if(shaderType == SHADER_GOURAUD) scanline_convert_gouraud(polygons, point, s, zb, kd);
-      else if(shaderType == SHADER_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, view, ambient, reflect);
-      else if(shaderType == SHADER_FLAT) scanline_convert_flat(polygons, point, s, zb, view, ambient, reflect, normal);
+      else if(shaderType == SHADER_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, view, ambient, &finalConstants, finalSpecExp);
+      else if(shaderType == SHADER_FLAT) scanline_convert_flat(polygons, point, s, zb, view, ambient, &finalConstants, finalSpecExp, normal);
       else if(shaderType == SHADER_WIREFRAME) draw_wireframe(polygons,point,s,zb,meshColor);
 
       /* draw_line( polygons->m[0][point], */

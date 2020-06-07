@@ -30,6 +30,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 	double vnTemp[3];
 	int bufferPlace = 0;
 	int done = 0;
+	int currentMatID = -1;
 
 	int regCompile = 0;
 	int reti;
@@ -148,6 +149,8 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 		char* lengthCheck;
 		int spaceNum;
 
+		struct material* currentMat;
+
 		while(fgets(buffer,BUFFER_SIZE,f) != NULL){
 			buffer[strlen(buffer)-1] = '\0';
 			sBuffer = strdup(buffer);
@@ -165,6 +168,11 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 					if(!strcmp(lineType,"mtllib")){
 						//printf("%s\n", sBuffer);
 						create_materials(sBuffer);
+					}
+
+					else if(!strcmp(lineType,"usemtl")){
+						currentMatID = find_material(sBuffer)->id;
+						//printf("%d\n", currentMatID);
 					}
 
 					else if(!strcmp(lineType,"v")){
@@ -198,6 +206,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 							for(int n = 0; n < 3; n++){
 								add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+								add_point(t, vtList->m[0][(int)textureLarge[n]], vtList->m[1][(int)textureLarge[n]], (double)currentMatID);
 
 								vTemp[0] = vList->m[0][(int)vertexLarge[n]];
 								vTemp[1] = vList->m[1][(int)vertexLarge[n]];
@@ -217,6 +226,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 							for(int n = 0; n < 4; n++){
 								add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+								add_point(t, vtList->m[0][(int)textureLarge[n]], vtList->m[1][(int)textureLarge[n]], (double)currentMatID);
 
 								vTemp[0] = vList->m[0][(int)vertexLarge[n]];
 								vTemp[1] = vList->m[1][(int)vertexLarge[n]];
@@ -301,10 +311,12 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+									add_point(t, vtList->m[0][(int)textureLarge[n]], vtList->m[1][(int)textureLarge[n]], currentMatID);
 								}
 
 								for(int n = 0; n < 4; n++){
 									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+									add_point(t, vtList->m[0][(int)textureLarge[n]], vtList->m[1][(int)textureLarge[n]], currentMatID);
 									if(n == 0) n++;
 
 								}
@@ -358,6 +370,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
+									add_point(t, vtList->m[0][(int)texture[n]], vtList->m[1][(int)texture[n]], currentMatID);
 
 									vTemp[0] = vList->m[0][(int)vertex[n]];
 									vTemp[1] = vList->m[1][(int)vertex[n]];
@@ -424,7 +437,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
-
+									add_point(t, vtList->m[0][(int)texture[n]], vtList->m[1][(int)texture[n]], currentMatID);
 								}
 
 								done = 1;
@@ -456,85 +469,6 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 								exit(1);
 							}
 						}
-						
-
-						
-
-						// spaceNum = 0;
-
-						// lengthCheck = strdup(sBuffer);
-						// while(*lengthCheck != '\0'){
-						// 	if(*lengthCheck == ' ') spaceNum++;
-						// 	lengthCheck++;
-						// }
-
-						// if(spaceNum == 2){ //Triangle
-						// 	sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-						// 		vertex, textureLarge, normal,
-						// 		vertex+1, textureLarge+1, normal+1,
-						// 		vertex+2, textureLarge+2, normal+2);
-
-						// 	for(int n = 0; n < 3; n++){
-						// 		add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
-
-						// 		vTemp[0] = vList->m[0][(int)vertex[n]];
-						// 		vTemp[1] = vList->m[1][(int)vertex[n]];
-						// 		vTemp[2] = vList->m[2][(int)vertex[n]];
-
-						// 		vnTemp[0] = vnList->m[0][(int)normal[n]];
-						// 		vnTemp[1] = vnList->m[1][(int)normal[n]];
-						// 		vnTemp[2] = vnList->m[2][(int)normal[n]];
-
-						// 		kd = kdInsert(kd, vTemp, vnTemp);
-
-						// 	}
-
-						// } else { //Rectangle
-						// 	sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-						// 		vertexLarge, textureLarge, normalLarge,
-						// 		vertexLarge+1, textureLarge+1, normalLarge+1,
-						// 		vertexLarge+2, textureLarge+2, normalLarge+2,
-						// 		vertexLarge+3, textureLarge+3, normalLarge+3);
-
-						// 	for(int n = 0; n < 3; n++){
-						// 		add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
-
-						// 		vTemp[0] = vList->m[0][(int)vertexLarge[n]];
-						// 		vTemp[1] = vList->m[1][(int)vertexLarge[n]];
-						// 		vTemp[2] = vList->m[2][(int)vertexLarge[n]];
-
-						// 		vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
-						// 		vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
-						// 		vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
-
-						// 		kd = kdInsert(kd, vTemp, vnTemp);
-
-						// 	}
-
-						// 	for(int n = 0; n < 4; n++){
-						// 		add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
-
-						// 		vTemp[0] = vList->m[0][(int)vertexLarge[n]];
-						// 		vTemp[1] = vList->m[1][(int)vertexLarge[n]];
-						// 		vTemp[2] = vList->m[2][(int)vertexLarge[n]];
-
-						// 		vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
-						// 		vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
-						// 		vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
-
-						// 		kd = kdInsert(kd, vTemp, vnTemp);
-						// 		if(n == 0) n++;
-
-						// 	}
-
-						// 	// add_point(p, vList->m[0][(int)vertexLarge[0]], vList->m[1][(int)vertexLarge[0]], vList->m[2][(int)vertexLarge[0]]);
-						// 	// add_point(p, vList->m[0][(int)vertexLarge[1]], vList->m[1][(int)vertexLarge[1]], vList->m[2][(int)vertexLarge[1]]);
-						// 	// add_point(p, vList->m[0][(int)vertexLarge[2]], vList->m[1][(int)vertexLarge[2]], vList->m[2][(int)vertexLarge[2]]);
-
-						// 	// add_point(p, vList->m[0][(int)vertexLarge[0]], vList->m[1][(int)vertexLarge[0]], vList->m[2][(int)vertexLarge[0]]);
-						// 	// add_point(p, vList->m[0][(int)vertexLarge[2]], vList->m[1][(int)vertexLarge[2]], vList->m[2][(int)vertexLarge[2]]);
-						// 	// add_point(p, vList->m[0][(int)vertexLarge[3]], vList->m[1][(int)vertexLarge[3]], vList->m[2][(int)vertexLarge[3]]);
-						// }
 
 
 					}

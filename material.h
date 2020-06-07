@@ -15,6 +15,7 @@ struct material{
 	double tf[3];
 	//double Ni;
 	int illum;
+	int id;
 
 	char *map_kd;
 	color** map_kd_raw;
@@ -29,10 +30,21 @@ struct material{
 	UT_hash_handle hh;
 };
 
+struct material_id{
+
+	int id;
+	char* mat;
+
+	UT_hash_handle hh;
+};
+
 struct material* m;
+struct material_id* mI;
+int currentID;
 
 void add_material(char *name);
 struct material* find_material(char *name);
+char* find_material_name(int id);
 void delete_material(char* name);
 void delete_material_all();
 void print_materials();

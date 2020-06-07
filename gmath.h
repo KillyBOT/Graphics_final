@@ -16,10 +16,10 @@
 #define SPECULAR_EXP 32
 
 // lighting functions
-color get_lighting( double *normal, double *view, color alight, struct constants *reflect);
+color get_lighting( double *normal, double *view, color alight, struct constants *reflect, double specExp);
 color calculate_ambient(color alight, struct constants *reflect );
 color calculate_diffuse(double light[2][3], struct constants *reflect, double *normal );
-color calculate_specular(double light[2][3], struct constants *reflect, double *view, double *normal );
+color calculate_specular(double light[2][3], struct constants *reflect, double *view, double *normal, double specExp);
 void limit_color( color * c );
 
 // vector functions

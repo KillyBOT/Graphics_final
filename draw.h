@@ -15,11 +15,11 @@
 void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1);
 void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd);
 void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, double* v0, double* v1,
-  double* view, color ambient, struct constants* reflect);
+  double* view, color ambient, struct constants* reflect, double specExp);
 void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd,
-  double* view, color ambient, struct constants* reflect);
+  double* view, color ambient, struct constants* reflect, double specExp);
 void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c);
-void scanline_convert_flat( struct matrix* points, int i, screen s, zbuffer zb, double* view, color ambient, struct constants* reflect, double sNormal[3]);
+void scanline_convert_flat( struct matrix* points, int i, screen s, zbuffer zb, double* view, color ambient, struct constants* reflect, double specExp, double sNormal[3]);
 void draw_wireframe(struct matrix* points, int i, screen s, zbuffer zb, color c);
 
 //polygon organization
@@ -28,10 +28,12 @@ void add_polygons( struct matrix * polys,
                    double x1, double y1, double z1,
                    double x2, double y2, double z2);
 struct kdTree* compute_vertex_normals(struct matrix* polygons);
-void draw_polygons( struct matrix * polys, struct kdTree* kd,
+void draw_polygons( struct matrix * polys, struct matrix* materials,
+                    struct kdTree* kd,
                     screen s, zbuffer zb,
                     double *view, color ambient,
                     struct constants *reflect,
+                    double specExp,
                     int shaderType);
 
 struct matrix* stlConvert(struct matrix* m, char* fileName);

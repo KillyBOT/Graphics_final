@@ -347,6 +347,9 @@ struct vary_node ** second_pass() {
 
 void my_main() {
 
+  double frames_completion;
+  double frames_change;
+
   struct vary_node ** knobs;
   struct vary_node * vn;
   struct vary_node* curr;
@@ -361,13 +364,18 @@ void my_main() {
   struct matrix *tmp;
   struct matrix *texTmp;
   struct stack *systems;
+
   extern struct material* m;
+  extern struct material_id* mI;
+  extern int currentID;
+
   screen t;
   zbuffer zb;
   double step_3d = 50;
   double theta, xval, yval, zval;
 
   int shaderType = SHADER_PHONG;
+  double specExp;
 
   int regCompile;
   extern regex_t qF;
@@ -436,6 +444,8 @@ void my_main() {
   white.g[SPECULAR_R] = 0.5;
   white.b[SPECULAR_R] = 0.5;
 
+  specExp = 32;
+
   //constants are a pointer in symtab, using one here for consistency
   struct constants *reflect;
   reflect = &white;
@@ -447,13 +457,22 @@ void my_main() {
 
   struct kdTree* kd = NULL;
 
+  frames_completion = 0;
+  frames_change = 1.0/(double)num_frames;
+
   for(f = 0; f < num_frames; f++){
+
+    printf("Animation %lf percent complete\n", frames_completion*100);
+    frames_completion += frames_change;
 
     systems = new_stack();
     ident(peek(systems));
     tmp = new_matrix(4, 1024);
-    texTmp = new_matrix(4, 1024);
+    texTmp = NULL;
     m = NULL;
+    mI = NULL;
+
+    currentID = 0;
     clear_screen( t );
     clear_zbuffer(zb);
 
@@ -492,8 +511,8 @@ void my_main() {
           }
           
           
-          draw_polygons(tmp, kd, t, zb, view, ambient,
-                        reflect, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient,
+                        reflect, specExp, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -523,8 +542,8 @@ void my_main() {
           }
 
           
-          draw_polygons(tmp, kd, t, zb, view, ambient,
-                        reflect, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient,
+                        reflect, specExp, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -554,8 +573,8 @@ void my_main() {
           }
 
         
-          draw_polygons(tmp, kd, t, zb, view, ambient,
-                        reflect, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient,
+                        reflect, specExp, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
 
@@ -576,11 +595,10 @@ void my_main() {
             matrix_mult(peek(systems), tmp);
           }
 
-          draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, reflect, specExp, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
           break;
-
         case CYLINDER:
 
           if (op[i].op.cylinder.constants != NULL){
@@ -601,7 +619,7 @@ void my_main() {
             matrix_mult(peek(systems),tmp);
           }
 
-          draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, reflect, specExp, shaderType);
 
           tmp->lastcol = 0;
           reflect = &white;
@@ -613,7 +631,9 @@ void my_main() {
             reflect = lookup_symbol(op[i].op.mesh.constants->name)->s.c;
           }
 
+          texTmp = new_matrix(4,4096);
           kd = convert(tmp, texTmp, op[i].op.mesh.name);
+          //print_materials();
           //kd = kdNormalize(kd, view, ambient, reflect);
           //print_matrix(tmp);
 
@@ -630,12 +650,14 @@ void my_main() {
 
           //print_matrix(tmp);
           //kdPrint(kd);
-
-          draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, reflect, specExp, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
-          delete_material_all(m);
+          delete_material_all();
+          free_matrix(texTmp);
+          texTmp = NULL;
           m = NULL;
+          mI = NULL;
 
           //peek(systems)->lastcol = 4;
           //print_matrix(peek(systems));
