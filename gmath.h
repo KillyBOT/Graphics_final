@@ -31,4 +31,8 @@ double dot_product( double *a, double *b );
 double *calculate_normal(struct matrix *polygons, int i);
 void print_vertex(double v[3]);
 
+//Perspective drawing
+double* convert_perspective(double vertex[3], double camera[2][3], double displaySurface[3]);
+//double* convert_perspective(double vertex[3], )
+
 #endif

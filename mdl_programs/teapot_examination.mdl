@@ -1,0 +1,14 @@
+frames 360
+basename teapot_examination
+
+push
+move 250 250 0
+scale 25 25 25
+rotate y 360 v0
+rotate x 360 v1
+rotate z 360 v2
+mesh :Utah_teapot_solid_binary.stl
+
+vary v0 0 119 0 1
+vary v1 120 239 0 1
+vary v2 240 359 0 1

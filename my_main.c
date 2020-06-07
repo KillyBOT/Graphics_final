@@ -54,6 +54,7 @@
 #include "gmath.h"
 #include "kdTree.h"
 #include "convert.h"
+#include "material.h"
 
 /*======== void first_pass() ==========
   Inputs:
@@ -358,10 +359,12 @@ void my_main() {
 
   int i;
   struct matrix *tmp;
+  struct matrix *texTmp;
   struct stack *systems;
+  extern struct material* m;
   screen t;
   zbuffer zb;
-  double step_3d = 30;
+  double step_3d = 50;
   double theta, xval, yval, zval;
 
   int shaderType = SHADER_PHONG;
@@ -449,6 +452,8 @@ void my_main() {
     systems = new_stack();
     ident(peek(systems));
     tmp = new_matrix(4, 1024);
+    texTmp = new_matrix(4, 1024);
+    m = NULL;
     clear_screen( t );
     clear_zbuffer(zb);
 
@@ -608,7 +613,7 @@ void my_main() {
             reflect = lookup_symbol(op[i].op.mesh.constants->name)->s.c;
           }
 
-          kd = convert(tmp, op[i].op.mesh.name);
+          kd = convert(tmp, texTmp, op[i].op.mesh.name);
           //kd = kdNormalize(kd, view, ambient, reflect);
           //print_matrix(tmp);
 
@@ -629,6 +634,8 @@ void my_main() {
           draw_polygons(tmp, kd, t, zb, view, ambient, reflect, shaderType);
           tmp->lastcol = 0;
           reflect = &white;
+          delete_material_all(m);
+          m = NULL;
 
           //peek(systems)->lastcol = 4;
           //print_matrix(peek(systems));

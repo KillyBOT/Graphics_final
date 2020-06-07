@@ -209,3 +209,29 @@ double *calculate_normal(struct matrix *polygons, int i) {
 void print_vertex(double v[3]){
   printf("X: %lf\tY: %lf\tZ: %lf\n", v[0], v[1], v[2]);
 }
+
+double* convert_perspective(double vertex[3], double camera[2][3], double displaySurface[3]){
+  double* finalVals = calloc(2, sizeof(double));
+
+  double x, y, z, tX, tY, tZ, dx, dy, dz;
+
+  x = vertex[0]-camera[0][0];
+  y = vertex[1]-camera[0][1];
+  z = vertex[2]-camera[0][2];
+
+  tX = camera[1][0] * (M_PI / 180);
+  tY = camera[1][1] * (M_PI / 180);
+  tZ = camera[1][2] * (M_PI / 180); 
+
+  dx = cos(tY) * ( sin(tZ) * y + cos(tZ) * x) - (sin(tY) * z);
+  dy = sin(tX) * ( cos(tY) * z + sin(tY) * (sin(tZ) * y + cos(tZ) * x)) + cos(tX) * (cos(tZ) * y - sin(tZ) * x);
+  dz = cos(tX) * ( cos(tY) * z + sin(tY) * (sin(tZ) * y + cos(tZ) * x)) - sin(tX) * (cos(tZ) * y - sin(tZ) * x);
+
+  finalVals[0] = (dx * XRES)/(dz * displaySurface[0] * displaySurface[2]);
+  finalVals[1] = (dy * YRES)/(dz * displaySurface[1] * displaySurface[2]);
+
+  return finalVals;
+
+}
+
+//double* 

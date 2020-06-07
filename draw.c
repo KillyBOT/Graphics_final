@@ -8,7 +8,6 @@
 #include "math.h"
 #include "gmath.h"
 #include "symtab.h"
-#include "hashTable.h"
 #include "kdTree.h"
 
 /*======== void draw_scanline() ==========
@@ -80,6 +79,7 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
   double v[3];
   double vn[3];
   double dv[3];
+  double finalV[3];
   color c;
   //swap if needed to assure left->right drawing
   set(v0f, v0);
@@ -107,12 +107,38 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
   dv[1] = distance != 0 ? (v1f[1] - v0f[1]) / distance : 0;
   dv[2] = distance != 0 ? (v1f[2] - v0f[2]) / distance : 0;
 
+  // double* perspectiveView;
+
+  // double camera[2][3];
+  // double displaySurface[3];
+  // camera[0][0] = view[0];
+  // camera[0][1] = view[1];
+  // camera[0][2] = 0;
+
+  // //Making up values for now
+  // camera[1][0] = 0;
+  // camera[1][1] = 0;
+  // camera[1][2] = 0;
+
+  // displaySurface[0] = 0.5;
+  // displaySurface[1] = 0.5;
+  // displaySurface[2] = 3;
+
   for(x=x0; x <= x1; x++) {
 
     set(vn, v);
     //normalize(vn);
 
     c = get_lighting(v, view, ambient, reflect);
+
+    // finalV[0] = x;
+    // finalV[1] = y;
+    // finalV[2] = z;
+
+    // perspectiveView = convert_perspective(finalV, camera, displaySurface);
+    // printf("%d %d %lf %lf\n", x, y, perspectiveView[0], perspectiveView[1]);
+    // plot(s, zb, c, (int)perspectiveView[0], (int)perspectiveView[1], z);
+    // free(perspectiveView);
 
     plot(s, zb, c, x, y, z);
 
@@ -732,6 +758,7 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   }
 
   int point;
+  int forceNormalCreation = 0;
 
   double drawPercent = 0;
   double percentChange = 1.0 / (double)(polygons->lastcol/3);
@@ -744,8 +771,9 @@ void draw_polygons( struct matrix *polygons, struct kdTree* kd,
   meshColor.green = 255;
   meshColor.blue = 255;
 
-  if(kd == NULL || kd->changed == 0){
+  if(forceNormalCreation || kd == NULL || kd->changed == 0){
     //printf("No vertex normal table! Creating one...\n");
+    //if(kd != NULL) kdFree(kd);
     kd = compute_vertex_normals(polygons);
   } 
 

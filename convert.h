@@ -7,8 +7,10 @@
 #include "matrix.h"
 #include "draw.h"
 #include "kdTree.h"
+#include "material.h"
 
-struct kdTree* convert(struct matrix* m, char* fileName);
+struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName);
+void create_materials(char* fileName);
 
 #define BUFFER_SIZE 512
 

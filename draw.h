@@ -5,7 +5,6 @@
 #include "matrix.h"
 #include "ml6.h"
 #include "symtab.h"
-#include "hashTable.h"
 #include "kdTree.h"
 
 #define SHADER_FLAT 0

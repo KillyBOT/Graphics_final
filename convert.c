@@ -4,27 +4,28 @@
 #include "draw.h"
 #include "kdTree.h"
 #include "gmath.h"
+#include "material.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
 
-struct kdTree* convert(struct matrix* m, char* fileName){
+struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 	FILE* f = fopen(fileName,"r");
 
 	char* fileType;
 	char* buffer;
-	float* binaryVertices;
-	float* normalVertices;
+	float* binaryVertex;
+	float* normalVertex;
 	char* sBuffer;
 	int vCount = 0;
-	double vertices[3];
-	double textureCoords[3];
-	double vNormals[3];
-	double verticesLarge[4];
-	double textureCoordsLarge[4];
-	double vNormalsLarge[4];
+	double vertex[3];
+	double texture[3];
+	double normal[3];
+	double vertexLarge[4];
+	double textureLarge[4];
+	double normalLarge[4];
 	double vTemp[3];
 	double vnTemp[3];
 	int bufferPlace = 0;
@@ -43,6 +44,8 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 	extern regex_t tFT;
 	extern regex_t tFN;
 	extern regex_t tFTN;
+
+	extern struct material* m;
 
 	//q = quadrilateral, t = triangle, F = faces included, T = texture included, N = Normal included
 
@@ -75,27 +78,29 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 					//printf("%s\n", buffer);
 
-					sscanf(sBuffer,"vertex %lf %lf %lf", vertices, vertices+1, vertices+2);
+					sscanf(sBuffer,"vertex %lf %lf %lf", vertex, vertex+1, vertex+2);
 
-					print_vertex(vertices);
+					//print_vertex(vertex);
 
-					add_point(m, vertices[0], vertices[1], vertices[2]);
-					kd = kdInsert(kd, vertices, vNormals);
+					add_point(p, vertex[0], vertex[1], vertex[2]);
+					kd = kdInsert(kd, vertex, normal);
 
 				} else if(sBuffer[0] == 'f'){
-					printf("Normal\n");
-					sscanf(sBuffer,"facet normal %lf %lf %lf",vNormals, vNormals+1,vNormals+2);
-					print_vertex(vNormals);
+					//printf("Normal\n");
+					sscanf(sBuffer,"facet normal %lf %lf %lf",normal, normal+1,normal+2);
+					//print_vertex(normal);
 				}
 				//printf("\n");
+
+				free(sBuffer);
 			}
 
 		} else { //Binary STL file
 
 			unsigned int tNum;
 			short int data;
-			normalVertices = malloc(sizeof(float) * 3);
-			binaryVertices = malloc(sizeof(float) * 3);
+			normalVertex = malloc(sizeof(float) * 3);
+			binaryVertex = malloc(sizeof(float) * 3);
 
 			fread(buffer, sizeof(char), 80, f);
 			//printf("Mesh name: %s\n", buffer);
@@ -104,28 +109,28 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 			//printf("Number of polygons: %d\n", tNum);
 
 			for(unsigned int n = 0; n < tNum; n++){
-				fread(normalVertices, sizeof(float), 3, f);
-				vNormals[0] = normalVertices[0];
-				vNormals[1] = normalVertices[1];
-				vNormals[2] = normalVertices[2];
+				fread(normalVertex, sizeof(float), 3, f);
+				normal[0] = normalVertex[0];
+				normal[1] = normalVertex[1];
+				normal[2] = normalVertex[2];
 
 				for(int o = 0; o < 3; o++){
-					fread(binaryVertices, sizeof(float),3,f);
-					vertices[0] = (double)binaryVertices[0];
-					vertices[1] = (double)binaryVertices[1];
-					vertices[2] = (double)binaryVertices[2];
+					fread(binaryVertex, sizeof(float),3,f);
+					vertex[0] = (double)binaryVertex[0];
+					vertex[1] = (double)binaryVertex[1];
+					vertex[2] = (double)binaryVertex[2];
 
-					add_point(m, vertices[0], vertices[1], vertices[2]);
-					kd = kdInsert(kd, vertices, vNormals);
-					//printf("%lf %lf %lf\n", vertices[0], vertices[1], vertices[2]);
+					add_point(p, vertex[0], vertex[1], vertex[2]);
+					kd = kdInsert(kd, vertex, normal);
+					//printf("%lf %lf %lf\n", vertex[0], vertex[1], vertex[2]);
 				}
 
 				fread(&data, sizeof(short int), 1, f);
 
 			}
 
-			free(normalVertices);
-			free(binaryVertices);
+			free(normalVertex);
+			free(binaryVertex);
 
 		}
 	}
@@ -133,8 +138,10 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 	else if(!strcmp(fileType,"obj")){ //Obj file
 
 		struct matrix* vList = new_matrix(4, 4096);
+		struct matrix* vtList = new_matrix(4, 4096);
 		struct matrix* vnList = new_matrix(4, 4096);
 		add_point(vList, 0, 0, 0);
+		add_point(vtList, 0, 0, 0);
 		add_point(vnList, 0, 0, 0);
 
 		char* lineType;
@@ -155,14 +162,24 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 					//printf("Line type: {%s}\n", lineType);
 					//printf("%s\n", sBuffer);
 
-					if(!strcmp(lineType,"v")){
-						sscanf(sBuffer, "%lf %lf %lf", vertices, vertices+1, vertices+2);
-						add_point(vList,vertices[0],vertices[1],vertices[2]);
+					if(!strcmp(lineType,"mtllib")){
+						//printf("%s\n", sBuffer);
+						create_materials(sBuffer);
+					}
+
+					else if(!strcmp(lineType,"v")){
+						sscanf(sBuffer, "%lf %lf %lf", vertex, vertex+1, vertex+2);
+						add_point(vList,vertex[0],vertex[1],vertex[2]);
+					}
+
+					else if(!strcmp(lineType,"vt")){
+						sscanf(sBuffer, "%lf %lf", texture, texture + 1);
+						add_point(vtList, texture[0], texture[1], 0);
 					}
 
 					else if(!strcmp(lineType, "vn")){
-						sscanf(sBuffer, "%lf %lf %lf", vNormals, vNormals + 1, vNormals+2);
-						add_point(vnList,vNormals[0],vNormals[1],vNormals[2]);
+						sscanf(sBuffer, "%lf %lf %lf", normal, normal + 1, normal+2);
+						add_point(vnList,normal[0],normal[1],normal[2]);
 					}
 
 					else if(!strcmp(lineType,"f")){
@@ -174,21 +191,21 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 						if(!reti){
 
 							sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-								verticesLarge, textureCoordsLarge, vNormalsLarge,
-								verticesLarge+1, textureCoordsLarge+1, vNormalsLarge+1,
-								verticesLarge+2, textureCoordsLarge+2, vNormalsLarge+2,
-								verticesLarge+3, textureCoordsLarge+3, vNormalsLarge+3);
+								vertexLarge, textureLarge, normalLarge,
+								vertexLarge+1, textureLarge+1, normalLarge+1,
+								vertexLarge+2, textureLarge+2, normalLarge+2,
+								vertexLarge+3, textureLarge+3, normalLarge+3);
 
 							for(int n = 0; n < 3; n++){
-								add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+								add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 
-								vTemp[0] = vList->m[0][(int)verticesLarge[n]];
-								vTemp[1] = vList->m[1][(int)verticesLarge[n]];
-								vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+								vTemp[0] = vList->m[0][(int)vertexLarge[n]];
+								vTemp[1] = vList->m[1][(int)vertexLarge[n]];
+								vTemp[2] = vList->m[2][(int)vertexLarge[n]];
 
-								vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
-								vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
-								vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+								vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
+								vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
+								vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
 
 								//print_vertex(vTemp);
 								//print_vertex(vnTemp);
@@ -199,15 +216,15 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							}
 
 							for(int n = 0; n < 4; n++){
-								add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+								add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 
-								vTemp[0] = vList->m[0][(int)verticesLarge[n]];
-								vTemp[1] = vList->m[1][(int)verticesLarge[n]];
-								vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+								vTemp[0] = vList->m[0][(int)vertexLarge[n]];
+								vTemp[1] = vList->m[1][(int)vertexLarge[n]];
+								vTemp[2] = vList->m[2][(int)vertexLarge[n]];
 
-								vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
-								vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
-								vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+								vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
+								vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
+								vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
 
 								kd = kdInsert(kd, vTemp, vnTemp);
 								if(n == 0) n++;
@@ -227,36 +244,36 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&qFN, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf//%lf %lf//%lf %lf//%lf %lf//%lf",
-									verticesLarge, vNormalsLarge,
-									verticesLarge+1, vNormalsLarge+1,
-									verticesLarge+2, vNormalsLarge+2,
-									verticesLarge+3, vNormalsLarge+3);
+									vertexLarge, normalLarge,
+									vertexLarge+1, normalLarge+1,
+									vertexLarge+2, normalLarge+2,
+									vertexLarge+3, normalLarge+3);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 
-									vTemp[0] = vList->m[0][(int)verticesLarge[n]];
-									vTemp[1] = vList->m[1][(int)verticesLarge[n]];
-									vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+									vTemp[0] = vList->m[0][(int)vertexLarge[n]];
+									vTemp[1] = vList->m[1][(int)vertexLarge[n]];
+									vTemp[2] = vList->m[2][(int)vertexLarge[n]];
 
-									vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
-									vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
-									vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+									vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
+									vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
+									vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
 
 									kd = kdInsert(kd, vTemp, vnTemp);
 
 								}
 
 								for(int n = 0; n < 4; n++){
-									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 
-									vTemp[0] = vList->m[0][(int)verticesLarge[n]];
-									vTemp[1] = vList->m[1][(int)verticesLarge[n]];
-									vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+									vTemp[0] = vList->m[0][(int)vertexLarge[n]];
+									vTemp[1] = vList->m[1][(int)vertexLarge[n]];
+									vTemp[2] = vList->m[2][(int)vertexLarge[n]];
 
-									vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
-									vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
-									vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+									vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
+									vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
+									vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
 
 									kd = kdInsert(kd, vTemp, vnTemp);
 									if(n == 0) n++;
@@ -277,17 +294,17 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&qFT, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf/%lf %lf/%lf %lf/%lf %lf/%lf",
-									verticesLarge, textureCoordsLarge,
-									verticesLarge+1, textureCoordsLarge+1,
-									verticesLarge+2, textureCoordsLarge+2,
-									verticesLarge+3, textureCoordsLarge+3);
+									vertexLarge, textureLarge,
+									vertexLarge+1, textureLarge+1,
+									vertexLarge+2, textureLarge+2,
+									vertexLarge+3, textureLarge+3);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 								}
 
 								for(int n = 0; n < 4; n++){
-									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 									if(n == 0) n++;
 
 								}
@@ -306,17 +323,17 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&qF, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf %lf %lf %lf",
-									verticesLarge,
-									verticesLarge+1,
-									verticesLarge+2,
-									verticesLarge+3);
+									vertexLarge,
+									vertexLarge+1,
+									vertexLarge+2,
+									vertexLarge+3);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 								}
 
 								for(int n = 0; n < 4; n++){
-									add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 									if(n == 0) n++;
 
 								}
@@ -335,20 +352,20 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&tFTN, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-									vertices, textureCoords, vNormals,
-									vertices+1, textureCoords+1, vNormals+1,
-									vertices+2, textureCoords+2, vNormals+2);
+									vertex, textureLarge, normal,
+									vertex+1, textureLarge+1, normal+1,
+									vertex+2, textureLarge+2, normal+2);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
 
-									vTemp[0] = vList->m[0][(int)vertices[n]];
-									vTemp[1] = vList->m[1][(int)vertices[n]];
-									vTemp[2] = vList->m[2][(int)vertices[n]];
+									vTemp[0] = vList->m[0][(int)vertex[n]];
+									vTemp[1] = vList->m[1][(int)vertex[n]];
+									vTemp[2] = vList->m[2][(int)vertex[n]];
 
-									vnTemp[0] = vnList->m[0][(int)vNormals[n]];
-									vnTemp[1] = vnList->m[1][(int)vNormals[n]];
-									vnTemp[2] = vnList->m[2][(int)vNormals[n]];
+									vnTemp[0] = vnList->m[0][(int)normal[n]];
+									vnTemp[1] = vnList->m[1][(int)normal[n]];
+									vnTemp[2] = vnList->m[2][(int)normal[n]];
 
 									kd = kdInsert(kd, vTemp, vnTemp);
 
@@ -368,20 +385,20 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&tFN, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf//%lf %lf//%lf %lf//%lf",
-									vertices,vNormals,
-									vertices+1,vNormals+1,
-									vertices+2,vNormals+2);
+									vertex,normal,
+									vertex+1,normal+1,
+									vertex+2,normal+2);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
 
-									vTemp[0] = vList->m[0][(int)vertices[n]];
-									vTemp[1] = vList->m[1][(int)vertices[n]];
-									vTemp[2] = vList->m[2][(int)vertices[n]];
+									vTemp[0] = vList->m[0][(int)vertex[n]];
+									vTemp[1] = vList->m[1][(int)vertex[n]];
+									vTemp[2] = vList->m[2][(int)vertex[n]];
 
-									vnTemp[0] = vnList->m[0][(int)vNormals[n]];
-									vnTemp[1] = vnList->m[1][(int)vNormals[n]];
-									vnTemp[2] = vnList->m[2][(int)vNormals[n]];
+									vnTemp[0] = vnList->m[0][(int)normal[n]];
+									vnTemp[1] = vnList->m[1][(int)normal[n]];
+									vnTemp[2] = vnList->m[2][(int)normal[n]];
 
 									kd = kdInsert(kd, vTemp, vnTemp);
 
@@ -401,12 +418,12 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&tFT, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf/%lf %lf/%lf %lf/%lf",
-									vertices, textureCoords,
-									vertices+1, textureCoords+1,
-									vertices+2, textureCoords+2);
+									vertex, textureLarge,
+									vertex+1, textureLarge+1,
+									vertex+2, textureLarge+2);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
 
 								}
 
@@ -422,12 +439,12 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 							reti = regexec(&tF, sBuffer, 0, NULL, 0);
 							if(!done && !reti){
 								sscanf(sBuffer, "%lf %lf %lf",
-									vertices,
-									vertices+1,
-									vertices+2);
+									vertex,
+									vertex+1,
+									vertex+2);
 
 								for(int n = 0; n < 3; n++){
-									add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
 								}
 
 								done = 1;
@@ -453,20 +470,20 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 						// if(spaceNum == 2){ //Triangle
 						// 	sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-						// 		vertices, textureCoords, vNormals,
-						// 		vertices+1, textureCoords+1, vNormals+1,
-						// 		vertices+2, textureCoords+2, vNormals+2);
+						// 		vertex, textureLarge, normal,
+						// 		vertex+1, textureLarge+1, normal+1,
+						// 		vertex+2, textureLarge+2, normal+2);
 
 						// 	for(int n = 0; n < 3; n++){
-						// 		add_point(m, vList->m[0][(int)vertices[n]], vList->m[1][(int)vertices[n]], vList->m[2][(int)vertices[n]]);
+						// 		add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
 
-						// 		vTemp[0] = vList->m[0][(int)vertices[n]];
-						// 		vTemp[1] = vList->m[1][(int)vertices[n]];
-						// 		vTemp[2] = vList->m[2][(int)vertices[n]];
+						// 		vTemp[0] = vList->m[0][(int)vertex[n]];
+						// 		vTemp[1] = vList->m[1][(int)vertex[n]];
+						// 		vTemp[2] = vList->m[2][(int)vertex[n]];
 
-						// 		vnTemp[0] = vnList->m[0][(int)vNormals[n]];
-						// 		vnTemp[1] = vnList->m[1][(int)vNormals[n]];
-						// 		vnTemp[2] = vnList->m[2][(int)vNormals[n]];
+						// 		vnTemp[0] = vnList->m[0][(int)normal[n]];
+						// 		vnTemp[1] = vnList->m[1][(int)normal[n]];
+						// 		vnTemp[2] = vnList->m[2][(int)normal[n]];
 
 						// 		kd = kdInsert(kd, vTemp, vnTemp);
 
@@ -474,49 +491,49 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 
 						// } else { //Rectangle
 						// 	sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-						// 		verticesLarge, textureCoordsLarge, vNormalsLarge,
-						// 		verticesLarge+1, textureCoordsLarge+1, vNormalsLarge+1,
-						// 		verticesLarge+2, textureCoordsLarge+2, vNormalsLarge+2,
-						// 		verticesLarge+3, textureCoordsLarge+3, vNormalsLarge+3);
+						// 		vertexLarge, textureLarge, normalLarge,
+						// 		vertexLarge+1, textureLarge+1, normalLarge+1,
+						// 		vertexLarge+2, textureLarge+2, normalLarge+2,
+						// 		vertexLarge+3, textureLarge+3, normalLarge+3);
 
 						// 	for(int n = 0; n < 3; n++){
-						// 		add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+						// 		add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 
-						// 		vTemp[0] = vList->m[0][(int)verticesLarge[n]];
-						// 		vTemp[1] = vList->m[1][(int)verticesLarge[n]];
-						// 		vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+						// 		vTemp[0] = vList->m[0][(int)vertexLarge[n]];
+						// 		vTemp[1] = vList->m[1][(int)vertexLarge[n]];
+						// 		vTemp[2] = vList->m[2][(int)vertexLarge[n]];
 
-						// 		vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
-						// 		vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
-						// 		vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+						// 		vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
+						// 		vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
+						// 		vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
 
 						// 		kd = kdInsert(kd, vTemp, vnTemp);
 
 						// 	}
 
 						// 	for(int n = 0; n < 4; n++){
-						// 		add_point(m, vList->m[0][(int)verticesLarge[n]], vList->m[1][(int)verticesLarge[n]], vList->m[2][(int)verticesLarge[n]]);
+						// 		add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
 
-						// 		vTemp[0] = vList->m[0][(int)verticesLarge[n]];
-						// 		vTemp[1] = vList->m[1][(int)verticesLarge[n]];
-						// 		vTemp[2] = vList->m[2][(int)verticesLarge[n]];
+						// 		vTemp[0] = vList->m[0][(int)vertexLarge[n]];
+						// 		vTemp[1] = vList->m[1][(int)vertexLarge[n]];
+						// 		vTemp[2] = vList->m[2][(int)vertexLarge[n]];
 
-						// 		vnTemp[0] = vnList->m[0][(int)vNormalsLarge[n]];
-						// 		vnTemp[1] = vnList->m[1][(int)vNormalsLarge[n]];
-						// 		vnTemp[2] = vnList->m[2][(int)vNormalsLarge[n]];
+						// 		vnTemp[0] = vnList->m[0][(int)normalLarge[n]];
+						// 		vnTemp[1] = vnList->m[1][(int)normalLarge[n]];
+						// 		vnTemp[2] = vnList->m[2][(int)normalLarge[n]];
 
 						// 		kd = kdInsert(kd, vTemp, vnTemp);
 						// 		if(n == 0) n++;
 
 						// 	}
 
-						// 	// add_point(m, vList->m[0][(int)verticesLarge[0]], vList->m[1][(int)verticesLarge[0]], vList->m[2][(int)verticesLarge[0]]);
-						// 	// add_point(m, vList->m[0][(int)verticesLarge[1]], vList->m[1][(int)verticesLarge[1]], vList->m[2][(int)verticesLarge[1]]);
-						// 	// add_point(m, vList->m[0][(int)verticesLarge[2]], vList->m[1][(int)verticesLarge[2]], vList->m[2][(int)verticesLarge[2]]);
+						// 	// add_point(p, vList->m[0][(int)vertexLarge[0]], vList->m[1][(int)vertexLarge[0]], vList->m[2][(int)vertexLarge[0]]);
+						// 	// add_point(p, vList->m[0][(int)vertexLarge[1]], vList->m[1][(int)vertexLarge[1]], vList->m[2][(int)vertexLarge[1]]);
+						// 	// add_point(p, vList->m[0][(int)vertexLarge[2]], vList->m[1][(int)vertexLarge[2]], vList->m[2][(int)vertexLarge[2]]);
 
-						// 	// add_point(m, vList->m[0][(int)verticesLarge[0]], vList->m[1][(int)verticesLarge[0]], vList->m[2][(int)verticesLarge[0]]);
-						// 	// add_point(m, vList->m[0][(int)verticesLarge[2]], vList->m[1][(int)verticesLarge[2]], vList->m[2][(int)verticesLarge[2]]);
-						// 	// add_point(m, vList->m[0][(int)verticesLarge[3]], vList->m[1][(int)verticesLarge[3]], vList->m[2][(int)verticesLarge[3]]);
+						// 	// add_point(p, vList->m[0][(int)vertexLarge[0]], vList->m[1][(int)vertexLarge[0]], vList->m[2][(int)vertexLarge[0]]);
+						// 	// add_point(p, vList->m[0][(int)vertexLarge[2]], vList->m[1][(int)vertexLarge[2]], vList->m[2][(int)vertexLarge[2]]);
+						// 	// add_point(p, vList->m[0][(int)vertexLarge[3]], vList->m[1][(int)vertexLarge[3]], vList->m[2][(int)vertexLarge[3]]);
 						// }
 
 
@@ -533,10 +550,131 @@ struct kdTree* convert(struct matrix* m, char* fileName){
 		free_matrix(vnList);
 	}
 
-	
-
 	free(buffer);
 	fclose(f);
 
 	return kd;
+}
+
+void create_materials(char* fileName){
+
+	extern struct material* m;
+
+	FILE* f = fopen(fileName, "r");
+
+	char* buffer;
+	char* sBuffer;
+	char* lineType;
+	char* currentName;
+	struct material* current = NULL;
+	char* mapFileName;
+	char nameBuffer[256];
+
+	buffer = malloc(BUFFER_SIZE);
+	currentName = NULL;
+
+	double valBuffer[3];
+	int numBuffer[3];
+
+	while(fgets(buffer, BUFFER_SIZE, f) != NULL){
+		//printf("Test\n");
+		buffer[strlen(buffer)-1] = '\0';
+		sBuffer = strdup(buffer);
+
+		while(sBuffer[0] == ' ' || sBuffer[0] == '\t') strsep(&sBuffer, " \t");
+
+		//printf("%s\n", sBuffer);
+
+		lineType = strsep(&sBuffer," ");
+
+		if(sBuffer != NULL){
+			while(sBuffer[0] == ' ' || sBuffer[0] == '\t') strsep(&sBuffer, " \t");
+
+			if(sBuffer != NULL){
+
+				if(currentName != NULL) current=find_material(currentName);
+
+				if(!strcmp(lineType, "newmtl")){
+					add_material(sBuffer);
+					if(currentName != NULL)free(currentName);
+					currentName = strdup(sBuffer);
+					//printf("%s\n", currentName);
+				}
+
+				if(!strcmp(lineType, "illum")){
+					sscanf(sBuffer,"%d",numBuffer);
+					current->illum = numBuffer[0];
+				}
+
+				if(!strcmp(lineType, "Ka")){
+					sscanf(sBuffer,"%lf %lf %lf",valBuffer, valBuffer + 1, valBuffer + 2);
+					current->ka[0] = valBuffer[0];
+					current->ka[1] = valBuffer[1];
+					current->ka[2] = valBuffer[2];
+				}
+
+				if(!strcmp(lineType, "Kd")){
+					sscanf(sBuffer,"%lf %lf %lf",valBuffer, valBuffer + 1, valBuffer + 2);
+					current->kd[0] = valBuffer[0];
+					current->kd[1] = valBuffer[1];
+					current->kd[2] = valBuffer[2];
+				}
+
+				if(!strcmp(lineType, "Ks")){
+					sscanf(sBuffer,"%lf %lf %lf",valBuffer, valBuffer + 1, valBuffer + 2);
+					current->ks[0] = valBuffer[0];
+					current->ks[1] = valBuffer[1];
+					current->ks[2] = valBuffer[2];
+				}
+
+				if(!strcmp(lineType, "Ns")){
+					sscanf(sBuffer, "%lf", valBuffer);
+					current->ns = valBuffer[0];
+				}
+
+				if(!strcmp(lineType, "map_Kd")){
+					mapFileName = strrchr(sBuffer, ' ');
+					mapFileName++;
+					//printf("%s\n", mapFileName);
+					FILE* texture = fopen(mapFileName, "r"); //We'll assume it's a PPM file for now...
+					unsigned char colorBuffer[3];
+
+					fgets(buffer,BUFFER_SIZE, texture);
+					//printf("%s\n", buffer);
+					fgets(buffer,BUFFER_SIZE, texture);
+					//printf("%s\n", buffer);
+
+					sscanf(buffer, "%d %d", numBuffer, numBuffer+1);
+					current->map_kd_cols = numBuffer[0];
+					current->map_kd_rows = numBuffer[1];
+					current->map_kd = strdup(mapFileName);
+
+					current->map_kd_raw = (color **)malloc(sizeof(color*)*current->map_kd_cols);
+					for(int x = 0; x < current->map_kd_cols; x++){
+						current->map_kd_raw[x] = (color*)malloc(sizeof(color)*current->map_kd_rows);
+					}
+
+					for(int x = 0; x < current->map_kd_cols; x++){
+						for(int y = 0; y < current->map_kd_rows; y++){
+							fread(colorBuffer, 1, 3, texture);
+							current->map_kd_raw[x][y].red = colorBuffer[0];
+							current->map_kd_raw[x][y].green = colorBuffer[1];
+							current->map_kd_raw[x][y].blue = colorBuffer[2];
+						}
+					}
+
+					fclose(texture);
+
+				}
+			}
+		}
+
+		//print_materials();
+
+	}
+
+	free(buffer);
+	free(currentName);
+
+	fclose(f);
 }

@@ -1,0 +1,12 @@
+frames 120
+basename bookshelf
+
+push
+move 250 100 0
+scale 125 125 125
+rotate y 360 v0
+rotate x 360 v1
+mesh :bookshelf.obj
+
+vary v0 0 59 0 1
+vary v1 60 119 0 1
