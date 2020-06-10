@@ -21,6 +21,7 @@ struct material{
 	color** map_kd_raw;
 	int map_kd_rows;
 	int map_kd_cols;
+	int map_kd_colorDepth;
 
 	// char map_Kd[128];
 	// char map_Ns[128];

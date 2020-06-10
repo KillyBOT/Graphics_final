@@ -33,6 +33,8 @@ ID [a-zA-Z][a-zA-Z0-9_]*
 "texture" {return TEXTURE;}
 
 "set" {return SET;}
+"set_light_location" {return SET_LIGHT_LOCATION;}
+"set_light_color" {return SET_LIGHT_COLOR;}
 "move" {return MOVE;}
 "scale" {return SCALE;}
 "rotate" {return ROTATE;}

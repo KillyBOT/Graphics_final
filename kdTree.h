@@ -32,7 +32,7 @@ struct kdTree* kdInsert(struct kdTree* kd, double* vertex, double* normal);
 struct kdNode* kdInsert_helper(struct kdNode* k, double* vertex, double* normal, int depth);
 struct kdNode* kdGetNode(struct kdTree* kd, double* vertex);
 struct kdNode* kdGetNode_helper(struct kdNode* k, double* vertex, int depth);
-struct kdTree* kdNormalize(struct kdTree* kd, double *view, color ambient, struct constants* reflect, double specExp);
+struct kdTree* kdNormalize(struct kdTree* kd, double *view, color ambient, int matID);
 struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, color ambient, struct constants* reflect, double specExp);
 struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m);
 struct kdNode* kdTransform_helper(struct kdNode* k, struct matrix* m, struct matrix* mn);

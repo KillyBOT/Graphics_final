@@ -11,8 +11,12 @@
 #include <string.h>
 #include <regex.h>
 
-struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
+struct kdTree* convert(struct matrix* p, struct matrix* t, double matID, char* fileName){
 	FILE* f = fopen(fileName,"r");
+	if(f == NULL){
+		printf("ERROR! Mesh file %s could not be loaded!\n", fileName);
+		exit(1);
+	}
 
 	char* fileType;
 	char* buffer;
@@ -84,6 +88,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 					//print_vertex(vertex);
 
 					add_point(p, vertex[0], vertex[1], vertex[2]);
+					add_point(t, -1, -1, matID);
 					kd = kdInsert(kd, vertex, normal);
 
 				} else if(sBuffer[0] == 'f'){
@@ -122,6 +127,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 					vertex[2] = (double)binaryVertex[2];
 
 					add_point(p, vertex[0], vertex[1], vertex[2]);
+					add_point(t, -1, -1, matID);
 					kd = kdInsert(kd, vertex, normal);
 					//printf("%lf %lf %lf\n", vertex[0], vertex[1], vertex[2]);
 				}
@@ -193,6 +199,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 					else if(!strcmp(lineType,"f")){
 
 						//printf("%s\n", sBuffer);
+						done = 0;
 
 
 						reti = regexec(&qFTN, sBuffer, 0, NULL, 0);
@@ -261,6 +268,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+									add_point(t, -1, -1, (double)currentMatID);
 
 									vTemp[0] = vList->m[0][(int)vertexLarge[n]];
 									vTemp[1] = vList->m[1][(int)vertexLarge[n]];
@@ -276,6 +284,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 								for(int n = 0; n < 4; n++){
 									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+									add_point(t, -1, -1, (double)currentMatID);
 
 									vTemp[0] = vList->m[0][(int)vertexLarge[n]];
 									vTemp[1] = vList->m[1][(int)vertexLarge[n]];
@@ -404,6 +413,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, char* fileName){
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
+									add_point(t, -1, -1, currentMatID);
 
 									vTemp[0] = vList->m[0][(int)vertex[n]];
 									vTemp[1] = vList->m[1][(int)vertex[n]];
@@ -495,6 +505,11 @@ void create_materials(char* fileName){
 	extern struct material* m;
 
 	FILE* f = fopen(fileName, "r");
+	if(f == NULL){
+		printf("%s\n", fileName);
+		printf("ERROR! MTL file could not be loaded! Check if it actually exists...\n");
+		exit(1);
+	}
 
 	char* buffer;
 	char* sBuffer;
@@ -517,7 +532,6 @@ void create_materials(char* fileName){
 
 		while(sBuffer[0] == ' ' || sBuffer[0] == '\t') strsep(&sBuffer, " \t");
 
-		//printf("%s\n", sBuffer);
 
 		lineType = strsep(&sBuffer," ");
 
@@ -525,6 +539,8 @@ void create_materials(char* fileName){
 			while(sBuffer[0] == ' ' || sBuffer[0] == '\t') strsep(&sBuffer, " \t");
 
 			if(sBuffer != NULL){
+
+				//printf("%s\n", sBuffer);
 
 				if(currentName != NULL) current=find_material(currentName);
 
@@ -568,10 +584,15 @@ void create_materials(char* fileName){
 
 				if(!strcmp(lineType, "map_Kd")){
 					mapFileName = strrchr(sBuffer, ' ');
-					mapFileName++;
+					if(mapFileName != NULL) mapFileName++;
+					else {
+						mapFileName = sBuffer;
+					}
 					//printf("%s\n", mapFileName);
 					FILE* texture = fopen(mapFileName, "r"); //We'll assume it's a PPM file for now...
 					unsigned char colorBuffer[3];
+
+					current->map_kd = strdup(mapFileName);
 
 					fgets(buffer,BUFFER_SIZE, texture);
 					//printf("%s\n", buffer);
@@ -581,7 +602,11 @@ void create_materials(char* fileName){
 					sscanf(buffer, "%d %d", numBuffer, numBuffer+1);
 					current->map_kd_cols = numBuffer[0];
 					current->map_kd_rows = numBuffer[1];
-					current->map_kd = strdup(mapFileName);
+
+					fgets(buffer, BUFFER_SIZE, texture);
+
+					sscanf(buffer, "%d", numBuffer);
+					current->map_kd_colorDepth = numBuffer[0];
 
 					current->map_kd_raw = (color **)malloc(sizeof(color*)*current->map_kd_cols);
 					for(int x = 0; x < current->map_kd_cols; x++){
@@ -591,9 +616,9 @@ void create_materials(char* fileName){
 					for(int x = 0; x < current->map_kd_cols; x++){
 						for(int y = 0; y < current->map_kd_rows; y++){
 							fread(colorBuffer, 1, 3, texture);
-							current->map_kd_raw[x][y].red = colorBuffer[0];
-							current->map_kd_raw[x][y].green = colorBuffer[1];
-							current->map_kd_raw[x][y].blue = colorBuffer[2];
+							current->map_kd_raw[x][y].red = (unsigned char)(255 * (colorBuffer[0]/current->map_kd_colorDepth));
+							current->map_kd_raw[x][y].green = (unsigned char)(255 * (colorBuffer[1]/current->map_kd_colorDepth));
+							current->map_kd_raw[x][y].blue = (unsigned char)(255 * (colorBuffer[2]/current->map_kd_colorDepth));
 						}
 					}
 

@@ -85,6 +85,10 @@ void delete_material_all(){
 		free(current_id->mat);
 	}
 
+	extern int currentID;
+
+	currentID = 0;
+
 
 }
 void print_materials(){

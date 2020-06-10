@@ -63,25 +63,27 @@ extern int yydebug;
     PLANE = 273,
     STRING = 274,
     SET = 275,
-    MOVE = 276,
-    SCALE = 277,
-    ROTATE = 278,
-    BASENAME = 279,
-    SAVE_KNOBS = 280,
-    TWEEN = 281,
-    FRAMES = 282,
-    VARY = 283,
-    PUSH = 284,
-    POP = 285,
-    SAVE = 286,
-    GENERATE_RAYFILES = 287,
-    SHADING = 288,
-    SHADING_TYPE = 289,
-    SETKNOBS = 290,
-    FOCAL = 291,
-    DISPLAY = 292,
-    WEB = 293,
-    CO = 294
+    SET_LIGHT_LOCATION = 276,
+    SET_LIGHT_COLOR = 277,
+    MOVE = 278,
+    SCALE = 279,
+    ROTATE = 280,
+    BASENAME = 281,
+    SAVE_KNOBS = 282,
+    TWEEN = 283,
+    FRAMES = 284,
+    VARY = 285,
+    PUSH = 286,
+    POP = 287,
+    SAVE = 288,
+    GENERATE_RAYFILES = 289,
+    SHADING = 290,
+    SHADING_TYPE = 291,
+    SETKNOBS = 292,
+    FOCAL = 293,
+    DISPLAY = 294,
+    WEB = 295,
+    CO = 296
   };
 #endif
 /* Tokens.  */
@@ -103,25 +105,27 @@ extern int yydebug;
 #define PLANE 273
 #define STRING 274
 #define SET 275
-#define MOVE 276
-#define SCALE 277
-#define ROTATE 278
-#define BASENAME 279
-#define SAVE_KNOBS 280
-#define TWEEN 281
-#define FRAMES 282
-#define VARY 283
-#define PUSH 284
-#define POP 285
-#define SAVE 286
-#define GENERATE_RAYFILES 287
-#define SHADING 288
-#define SHADING_TYPE 289
-#define SETKNOBS 290
-#define FOCAL 291
-#define DISPLAY 292
-#define WEB 293
-#define CO 294
+#define SET_LIGHT_LOCATION 276
+#define SET_LIGHT_COLOR 277
+#define MOVE 278
+#define SCALE 279
+#define ROTATE 280
+#define BASENAME 281
+#define SAVE_KNOBS 282
+#define TWEEN 283
+#define FRAMES 284
+#define VARY 285
+#define PUSH 286
+#define POP 287
+#define SAVE 288
+#define GENERATE_RAYFILES 289
+#define SHADING 290
+#define SHADING_TYPE 291
+#define SETKNOBS 292
+#define FOCAL 293
+#define DISPLAY 294
+#define WEB 295
+#define CO 296
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -133,7 +137,7 @@ union YYSTYPE
   double val;
   char string[255];
 
-#line 137 "y.tab.h" /* yacc.c:1909  */
+#line 141 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

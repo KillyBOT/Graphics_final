@@ -19,6 +19,8 @@ struct command
   {
     struct {
       SYMTAB *p;
+      SYMTAB *v;
+      double l[4];
       double c[4];
     } light;
     struct {
@@ -88,6 +90,17 @@ struct command
       SYMTAB *p;
       double val;
     } set;
+    struct {
+      SYMTAB *p;
+      SYMTAB *v;
+      int axis;
+      double val;
+    } set_light_location;
+    struct {
+      SYMTAB *p;
+      double c;
+      double val;
+    } set_light_color;
     struct {
       double d[4];
       SYMTAB *p;

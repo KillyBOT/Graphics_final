@@ -56,6 +56,19 @@
 #include "convert.h"
 #include "material.h"
 
+extern struct material* m;
+extern struct material_id* mI;
+
+extern regex_t qF;
+extern regex_t qFT;
+extern regex_t qFN;
+extern regex_t qFTN;
+
+extern regex_t tF;
+extern regex_t tFT;
+extern regex_t tFN;
+extern regex_t tFTN;
+
 /*======== void first_pass() ==========
   Inputs:
   Returns:
@@ -72,6 +85,8 @@
   If frames is found, but basename is not, set name
   to some default value, and print out a message
   with the name being used.
+
+  This pass will also load meshes, textures, and constants
   ====================*/
 void first_pass() {
   //These variables are defined at the bottom of symtab.h
@@ -82,12 +97,55 @@ void first_pass() {
   varyFound = 0;
   framesFound = 0;
   basenameFound = 0;
+  struct matrix* polys;
+  struct matrix* textures;
+  struct kdTree* meshKD;
+  int matID;
+  char finalName[512];
 
   num_frames = 1;
+  matID = 0;
 
   struct vary_node* knobs = NULL;
   struct vary_node* curr;
   struct vary_node* prev = NULL;
+  struct light* tmpLight;
+  struct kdTree* kd;
+
+  struct material* tmpMat;
+  struct constants white;
+  int specExp;
+
+  white.r[AMBIENT_R] = 0.1;
+  white.g[AMBIENT_R] = 0.1;
+  white.b[AMBIENT_R] = 0.1;
+
+  white.r[DIFFUSE_R] = 0.5;
+  white.g[DIFFUSE_R] = 0.5;
+  white.b[DIFFUSE_R] = 0.5;
+
+  white.r[SPECULAR_R] = 0.5;
+  white.g[SPECULAR_R] = 0.5;
+  white.b[SPECULAR_R] = 0.5;
+
+  specExp = 64;
+
+  add_material("DefaultMaterial");
+  tmpMat = find_material("DefaultMaterial");
+
+  tmpMat->ka[0] = white.r[AMBIENT_R];
+  tmpMat->ka[1] = white.g[AMBIENT_R];
+  tmpMat->ka[2] = white.b[AMBIENT_R];
+
+  tmpMat->kd[0] = white.r[DIFFUSE_R];
+  tmpMat->kd[1] = white.g[DIFFUSE_R];
+  tmpMat->kd[2] = white.b[DIFFUSE_R];
+
+  tmpMat->ks[0] = white.r[SPECULAR_R];
+  tmpMat->ks[1] = white.g[SPECULAR_R];
+  tmpMat->ks[2] = white.b[SPECULAR_R];
+
+  tmpMat->ns = specExp;
 
   char* knobName;
   double knobVal;
@@ -95,6 +153,27 @@ void first_pass() {
   for(int i=0;i<lastop;i++){
     //printf("%d: ", i);
     switch(op[i].opcode){
+      case CONSTANTS:
+
+          add_material(op[i].op.constants.p->name);
+
+          tmpMat = find_material(op[i].op.constants.p->name);
+
+          tmpMat->ka[0] = op[i].op.constants.p->s.c->r[0];
+          tmpMat->ka[1] = op[i].op.constants.p->s.c->g[0];
+          tmpMat->ka[2] = op[i].op.constants.p->s.c->b[0];
+
+          tmpMat->kd[0] = op[i].op.constants.p->s.c->r[1];
+          tmpMat->kd[1] = op[i].op.constants.p->s.c->g[1];
+          tmpMat->kd[2] = op[i].op.constants.p->s.c->b[1];
+
+          tmpMat->ks[0] = op[i].op.constants.p->s.c->r[2];
+          tmpMat->ks[1] = op[i].op.constants.p->s.c->g[2];
+          tmpMat->ks[2] = op[i].op.constants.p->s.c->b[2];
+
+          tmpMat->ns = 32;
+
+          break;
       case FRAMES:
 
         num_frames = (int)op[i].op.frames.num_frames;
@@ -111,14 +190,63 @@ void first_pass() {
 
         break;
 
+      case MESH:
+
+        if(op[i].op.mesh.constants != NULL){
+          matID = find_material(op[i].op.mesh.constants->name)->id;
+        }
+        //printf("%s %d\n", op[i].op.mesh.constants->name, matID);
+
+        add_symbol(op[i].op.mesh.name, SYM_FILE, 0);
+
+        polys = new_matrix(4, 1024);
+        textures = new_matrix(4, 1024);
+
+        meshKD = convert(polys,textures,(double)matID,op[i].op.mesh.name);
+
+        //sscanf(finalName,"%s%s",op[i].op.mesh.name,"_polygons");
+        strcpy(finalName,op[i].op.mesh.name);
+        strcat(finalName,"_polygons_");
+        if(op[i].op.mesh.constants != NULL)strcat(finalName,op[i].op.mesh.constants->name);
+        add_symbol(finalName,SYM_MATRIX,polys);
+
+        //sscanf(finalName,"%s%s",op[i].op.mesh.name,"_textures");
+        strcpy(finalName,op[i].op.mesh.name);
+        strcat(finalName,"_textures_");
+        if(op[i].op.mesh.constants != NULL)strcat(finalName,op[i].op.mesh.constants->name);
+        add_symbol(finalName,SYM_MATRIX,textures);
+
+        //sscanf(finalName,"%s%s",op[i].op.mesh.name,"_kdtree");
+        strcpy(finalName,op[i].op.mesh.name);
+        strcat(finalName,"_kdTree_");
+        if(op[i].op.mesh.constants != NULL)strcat(finalName,op[i].op.mesh.constants->name);
+        add_symbol(finalName,SYM_KDTREE,meshKD);
+
+        //print_symtab();
+
+        matID = 0;
+
+        break;
+
       case SET:
 
         if(lookup_symbol(op[i].op.set.p->name) == NULL){
-          printf("Adding %s\n", op[i].op.set.p->name);
+          //printf("Adding %s\n", op[i].op.set.p->name);
           add_symbol(op[i].op.set.p->name,SYM_VALUE,0);
         }
 
         set_value(lookup_symbol(op[i].op.set.p->name),op[i].op.set.val);
+
+        break;
+
+      case LIGHT:
+
+        tmpLight = lookup_symbol(op[i].op.light.p->name)->s.l;
+
+          for(int n = 0; n < 3; n++){
+            tmpLight->l[n] = op[i].op.light.l[n];
+            tmpLight->c[n] = op[i].op.light.c[n];
+          }
 
         break;
 
@@ -345,48 +473,19 @@ struct vary_node ** second_pass() {
   return knobs;
 }
 
+// void third_pass(struct matrix* p, struct matrix* t){
+//   int i;
+
+//   double step_3d;
+
+// }
+
 void my_main() {
 
   double frames_completion;
   double frames_change;
 
-  struct vary_node ** knobs;
-  struct vary_node * vn;
-  struct vary_node* curr;
-  first_pass();
-  printf("First pass complete\n");
-  knobs = second_pass();
-  printf("Second pass complete\n");
-  char frame_name[128];
-  int f;
-
-  int i;
-  struct matrix *tmp;
-  struct matrix *texTmp;
-  struct stack *systems;
-
-  extern struct material* m;
-  extern struct material_id* mI;
-  extern int currentID;
-
-  screen t;
-  zbuffer zb;
-  double step_3d = 50;
-  double theta, xval, yval, zval;
-
-  int shaderType = SHADER_PHONG;
-  double specExp;
-
   int regCompile;
-  extern regex_t qF;
-  extern regex_t qFT;
-  extern regex_t qFN;
-  extern regex_t qFTN;
-
-  extern regex_t tF;
-  extern regex_t tFT;
-  extern regex_t tFN;
-  extern regex_t tFTN;
 
   regCompile = 0;
 
@@ -405,7 +504,35 @@ void my_main() {
     exit(1);
   }
 
+  m = NULL;
+  mI = NULL;
 
+  struct vary_node ** knobs;
+  struct vary_node * vn;
+  struct vary_node* curr;
+  first_pass();
+  printf("First pass complete\n");
+  knobs = second_pass();
+  printf("Second pass complete\n");
+  //print_materials();
+  char frame_name[128];
+  char meshName[512];
+  int f;
+
+  int i;
+  int matID;
+  struct matrix *tmp;
+  struct matrix *texTmp;
+  struct stack *systems;
+
+  struct material* tmpMat;
+
+  screen t;
+  zbuffer zb;
+  double step_3d = 50;
+  double theta, xval, yval, zval;
+
+  int shaderType = SHADER_GOURAUD;
 
   //Lighting values here for easy access
   color ambient;
@@ -431,24 +558,8 @@ void my_main() {
   view[2] = 1;
 
   //default reflective constants if none are set in script file
-  struct constants white;
-  white.r[AMBIENT_R] = 0.1;
-  white.g[AMBIENT_R] = 0.1;
-  white.b[AMBIENT_R] = 0.1;
-
-  white.r[DIFFUSE_R] = 0.5;
-  white.g[DIFFUSE_R] = 0.5;
-  white.b[DIFFUSE_R] = 0.5;
-
-  white.r[SPECULAR_R] = 0.5;
-  white.g[SPECULAR_R] = 0.5;
-  white.b[SPECULAR_R] = 0.5;
-
-  specExp = 32;
 
   //constants are a pointer in symtab, using one here for consistency
-  struct constants *reflect;
-  reflect = &white;
 
   color g;
   g.red = 255;
@@ -462,17 +573,14 @@ void my_main() {
 
   for(f = 0; f < num_frames; f++){
 
-    printf("Animation %lf percent complete\n", frames_completion*100);
-    frames_completion += frames_change;
+    //print_materials();
 
     systems = new_stack();
     ident(peek(systems));
     tmp = new_matrix(4, 1024);
-    texTmp = NULL;
-    m = NULL;
-    mI = NULL;
+    texTmp = new_matrix(4, 1024);
 
-    currentID = 0;
+    matID = 0;
     clear_screen( t );
     clear_zbuffer(zb);
 
@@ -486,6 +594,8 @@ void my_main() {
 
     for (i=0;i<lastop;i++) {
 
+      //printf("Operation %d\n", i);
+
       switch (op[i].opcode)
         {
         case SPHERE:
@@ -495,13 +605,16 @@ void my_main() {
           //        op[i].op.sphere.r);
           if (op[i].op.sphere.constants != NULL) {
             //printf("\tconstants: %s",op[i].op.sphere.constants->name);
-            reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
+            //reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
+            matID = find_material(op[i].op.sphere.constants->name)->id;
           }
 
-          add_sphere(tmp, op[i].op.sphere.d[0],
-                     op[i].op.sphere.d[1],
-                     op[i].op.sphere.d[2],
-                     op[i].op.sphere.r, step_3d);
+          add_sphere(tmp, texTmp,
+            (double)matID,
+            op[i].op.sphere.d[0],
+            op[i].op.sphere.d[1],
+            op[i].op.sphere.d[2],
+            op[i].op.sphere.r, step_3d);
 
           if (op[i].op.sphere.cs != NULL) {
             //printf("\tcs: %s",op[i].op.sphere.cs->name);
@@ -512,9 +625,11 @@ void my_main() {
           
           
           draw_polygons(tmp, texTmp, kd, t, zb, view, ambient,
-                        reflect, specExp, shaderType);
+                        shaderType);
           tmp->lastcol = 0;
-          reflect = &white;
+          texTmp->lastcol = 0;
+          //reflect = &white;
+          matID = 0;
 
           break;
         case TORUS:
@@ -524,14 +639,16 @@ void my_main() {
           //        op[i].op.torus.r0,op[i].op.torus.r1);
           if (op[i].op.torus.constants != NULL) {
             //printf("\tconstants: %s",op[i].op.torus.constants->name);
-            reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
+            //reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
+            matID = find_material(op[i].op.torus.constants->name)->id;
           }
 
-          add_torus(tmp,
-                    op[i].op.torus.d[0],
-                    op[i].op.torus.d[1],
-                    op[i].op.torus.d[2],
-                    op[i].op.torus.r0,op[i].op.torus.r1, step_3d);
+          add_torus(tmp, texTmp,
+            (double)matID,
+            op[i].op.torus.d[0],
+            op[i].op.torus.d[1],
+            op[i].op.torus.d[2],
+            op[i].op.torus.r0,op[i].op.torus.r1, step_3d);
 
           if (op[i].op.torus.cs != NULL) {
             //printf("\tcs: %s",op[i].op.torus.cs->name);
@@ -543,9 +660,11 @@ void my_main() {
 
           
           draw_polygons(tmp, texTmp, kd, t, zb, view, ambient,
-                        reflect, specExp, shaderType);
+                        shaderType);
           tmp->lastcol = 0;
-          reflect = &white;
+          texTmp->lastcol = 0;
+          //reflect = &white;
+          matID = 0;
 
           break;
         case BOX:
@@ -556,14 +675,16 @@ void my_main() {
           //        op[i].op.box.d1[2]);
           if (op[i].op.box.constants != NULL) {
             //printf("\tconstants: %s",op[i].op.box.constants->name);
-            reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
+            //reflect = lookup_symbol(op[i].op.sphere.constants->name)->s.c;
+            matID = find_material(op[i].op.box.constants->name)->id;
           }
 
-          add_box(tmp,
-                  op[i].op.box.d0[0],op[i].op.box.d0[1],
-                  op[i].op.box.d0[2],
-                  op[i].op.box.d1[0],op[i].op.box.d1[1],
-                  op[i].op.box.d1[2]);
+          add_box(tmp, texTmp,
+            (double)matID,
+            op[i].op.box.d0[0],op[i].op.box.d0[1],
+            op[i].op.box.d0[2],
+            op[i].op.box.d1[0],op[i].op.box.d1[1],
+            op[i].op.box.d1[2]);
 
           if (op[i].op.box.cs != NULL) {
             //printf("\tcs: %s",op[i].op.box.cs->name);
@@ -574,15 +695,18 @@ void my_main() {
 
         
           draw_polygons(tmp, texTmp, kd, t, zb, view, ambient,
-                        reflect, specExp, shaderType);
+                        shaderType);
           tmp->lastcol = 0;
-          reflect = &white;
+          texTmp->lastcol = 0;
+          //reflect = &white;
+          matID = 0;
 
           break;
         case PLANE:
 
           if(op[i].op.plane.constants != NULL) {
-            reflect = lookup_symbol(op[i].op.plane.constants->name)->s.c;
+            //reflect = lookup_symbol(op[i].op.plane.constants->name)->s.c;
+            matID = find_material(op[i].op.plane.constants->name)->id;
           }
 
           add_plane(tmp,
@@ -595,17 +719,20 @@ void my_main() {
             matrix_mult(peek(systems), tmp);
           }
 
-          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, reflect, specExp, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, shaderType);
           tmp->lastcol = 0;
-          reflect = &white;
+          texTmp->lastcol = 0;
+          //reflect = &white;
           break;
         case CYLINDER:
 
           if (op[i].op.cylinder.constants != NULL){
-            reflect = lookup_symbol(op[i].op.cylinder.constants->name)->s.c;
+            //reflect = lookup_symbol(op[i].op.cylinder.constants->name)->s.c;
+            matID = find_material(op[i].op.cylinder.constants->name)->id;
           }
 
-          add_cylinder(tmp,
+          add_cylinder(tmp, texTmp,
+            (double)matID,
             op[i].op.cylinder.d[0],
             op[i].op.cylinder.d[1],
             op[i].op.cylinder.d[2],
@@ -619,24 +746,41 @@ void my_main() {
             matrix_mult(peek(systems),tmp);
           }
 
-          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, reflect, specExp, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, shaderType);
 
           tmp->lastcol = 0;
-          reflect = &white;
+          texTmp->lastcol = 0;
+          //reflect = &white;
+          matID = 0;
 
           break;
         case MESH:
 
-          if(op[i].op.mesh.constants != NULL){
-            reflect = lookup_symbol(op[i].op.mesh.constants->name)->s.c;
-          }
+          //print_symtab();
+          //sscanf(meshName,"%s%s",op[i].op.mesh.name,"_polygons");
+          strcpy(meshName,op[i].op.mesh.name);
+          strcat(meshName,"_polygons_");
+          if(op[i].op.mesh.constants != NULL)strcat(meshName,op[i].op.mesh.constants->name);
+          copy_matrix(lookup_symbol(meshName)->s.m,tmp);
+          //print_matrix(tmp);
+          //sscanf(meshName,"%s%s",op[i].op.mesh.name,"_textures");
+          strcpy(meshName,op[i].op.mesh.name);
+          strcat(meshName,"_textures_");
+          if(op[i].op.mesh.constants != NULL)strcat(meshName,op[i].op.mesh.constants->name);
+          copy_matrix(lookup_symbol(meshName)->s.m,texTmp);
 
-          texTmp = new_matrix(4,4096);
-          kd = convert(tmp, texTmp, op[i].op.mesh.name);
+          //sscanf(meshName,"%s%s",op[i].op.mesh.name,"_kdtree");
+          strcpy(meshName,op[i].op.mesh.name);
+          strcat(meshName,"_kdTree_");
+          if(op[i].op.mesh.constants != NULL)strcat(meshName,op[i].op.mesh.constants->name);
+          //kdPrint(lookup_symbol(meshName)->s.kd);
+          //kd = lookup_symbol(meshName)->s.kd;
+          kd = kdCreate();
+          kdCopy(kd,lookup_symbol(meshName)->s.kd);
+
           //print_materials();
           //kd = kdNormalize(kd, view, ambient, reflect);
           //print_matrix(tmp);
-
           //kdPrint(kd);
           //printf("###########################################################\n");
 
@@ -650,21 +794,18 @@ void my_main() {
 
           //print_matrix(tmp);
           //kdPrint(kd);
-          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, reflect, specExp, shaderType);
+          draw_polygons(tmp, texTmp, kd, t, zb, view, ambient, shaderType);
           tmp->lastcol = 0;
-          reflect = &white;
-          delete_material_all();
-          free_matrix(texTmp);
-          texTmp = NULL;
-          m = NULL;
-          mI = NULL;
+          texTmp->lastcol = 0;
+          //reflect = &white;
+          matID = 0;
+          //texTmp = NULL;
 
           //peek(systems)->lastcol = 4;
           //print_matrix(peek(systems));
           //print_matrix(matrix_inverse(peek(systems)));
 
           break;
-
         case LINE:
           // printf("Line: from: %6.2f %6.2f %6.2f to: %6.2f %6.2f %6.2f",
           //        op[i].op.line.p0[0],op[i].op.line.p0[1],
@@ -741,28 +882,16 @@ void my_main() {
           copy_matrix(tmp, peek(systems));
           tmp->lastcol = 0;
           break;
-        case LIGHT:
-
-          tmpLight = malloc(sizeof(struct light));
-
-          for(int n = 0; n < 3; n++){
-            tmpLight->l[n] = op[i].op.light.p->s.l->l[n];
-            tmpLight->c[n] = op[i].op.light.p->s.l->c[n];
-          }
-
-          add_symbol(op[i].op.light.p->name,SYM_LIGHT,tmpLight);
-
-          break;
         case AMBIENT:
 
-          white.r[AMBIENT_R] = op[i].op.ambient.c[0];
-          white.g[AMBIENT_R] = op[i].op.ambient.c[1];
-          white.b[AMBIENT_R] = op[i].op.ambient.c[2];
+          find_material("DefaultLight")->ka[0] = op[i].op.ambient.c[0];
+          find_material("DefaultLight")->ka[1] = op[i].op.ambient.c[1];
+          find_material("DefaultLight")->ka[2] = op[i].op.ambient.c[2];
 
           if(op[i].op.ambient.p != NULL){
-            white.r[AMBIENT_R] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
-            white.g[AMBIENT_R] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
-            white.b[AMBIENT_R] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
+            find_material("DefaultLight")->ka[0] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
+            find_material("DefaultLight")->ka[1] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
+            find_material("DefaultLight")->ka[2] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
           }
 
           break;
@@ -782,6 +911,17 @@ void my_main() {
           //printf("Pop");
           pop(systems);
           break;
+        case SET_LIGHT_LOCATION:
+
+          tmpLight = lookup_symbol(op[i].op.set_light_location.p->name)->s.l;
+
+          tmpLight->l[op[i].op.set_light_location.axis] = op[i].op.set_light_location.val;
+
+          if(op[i].op.set_light_location.v != NULL){
+            tmpLight->l[op[i].op.set_light_location.axis] *= lookup_symbol(op[i].op.set_light_location.v->name)->s.value;
+          }
+
+          break;
         case SAVE:
           if(num_frames <= 1){
             //printf("Save: %s",op[i].op.save.p->name);
@@ -797,8 +937,8 @@ void my_main() {
             strcat(finalName,op[i].op.save.p->name);
             save_extension(t, finalName);
             printf("Image saved! Check the output folder\n");
-            break;
           }
+          break;
         case SAVE_COORDS:
 
           copy_matrix(peek(systems),lookup_symbol(op[i].op.save_coordinate_system.p->name)->s.m);
@@ -806,11 +946,13 @@ void my_main() {
           break;
         case DISPLAY:
           if(num_frames <= 1){
-            //printf("Display");
             display(t);
             break;
           }
         }
+
+      //print_symtab();
+      //print_materials();
       //printf("\n");
       if(kd != NULL){
         kdFree(kd);
@@ -830,6 +972,14 @@ void my_main() {
 
     free_stack( systems );
     free_matrix( tmp );
+    free_matrix(texTmp);
+
+    //print_materials();
+
+    //delete_material_all();
+
+    frames_completion += frames_change;
+    printf("Animation %lf percent complete\n", frames_completion*100);
 
   }
 
@@ -895,5 +1045,4 @@ void my_main() {
   regfree(&tFN);
   regfree(&tFT);
   regfree(&tF);
-
 }

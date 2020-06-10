@@ -747,13 +747,10 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons){
   Goes through polygons 3 points at a time, drawing
   lines connecting each points to create bounding triangles
   ====================*/
-void draw_polygons( struct matrix *polygons, struct matrix* materials,
-                    struct kdTree* kd,
-                    screen s, zbuffer zb,
-                    double *view, color ambient,
-                    struct constants* reflect,
-                    double specExp,
-                    int shaderType) {
+void draw_polygons( struct matrix *polygons, struct matrix* textures,
+  struct kdTree* kd, screen s, zbuffer zb,
+  double *view, color ambient,
+  int shaderType) {
   
   if ( polygons->lastcol < 3 ) {
     printf("Need at least 3 points to draw a polygon!\n");
@@ -762,6 +759,8 @@ void draw_polygons( struct matrix *polygons, struct matrix* materials,
 
   int point;
   int forceNormalCreation = 0;
+
+  //print_materials();
 
   double drawPercent = 0;
   double percentChange = 1.0 / (double)(polygons->lastcol/3);
@@ -782,9 +781,8 @@ void draw_polygons( struct matrix *polygons, struct matrix* materials,
     //printf("No vertex normal table! Creating one...\n");
     //if(kd != NULL) kdFree(kd);
     kd = compute_vertex_normals(polygons);
-  } 
-
-  kd = kdNormalize(kd, view, ambient, reflect, specExp);
+    kdNormalize(kd,view, ambient,0);
+  }
   //kdCheck(kd, polygons);
 
   //kdPrint(kd);
@@ -810,48 +808,30 @@ void draw_polygons( struct matrix *polygons, struct matrix* materials,
       // get color value only if front facing
       //color i = get_lighting(normal, view, ambient, light, areflect, dreflect, sreflect);
 
-      if(materials != NULL){
-        //print_matrix(materials);
-        //printf("%d\n", (int)materials->m[2][point]);
-        //printf("%s\n", find_material_name((int)materials->m[2][point]));
-        currentMaterial = find_material(find_material_name((int)materials->m[2][point]));
-        currentMaterialID = currentMaterial->id;
-        //printf("Test\n");
+      //print_matrix(materials);
+      //printf("%d\n", (int)textures->m[2][point]);
+      //printf("%s\n", find_material_name((int)textures->m[2][point]));
+      currentMaterial = find_material(find_material_name((int)textures->m[2][point]));
+      currentMaterialID = currentMaterial->id;
+      //printf("Test\n");
 
-        finalConstants.r[AMBIENT_R] = currentMaterial->ka[0];
-        finalConstants.g[AMBIENT_R] = currentMaterial->ka[1];
-        finalConstants.b[AMBIENT_R] = currentMaterial->ka[2];
+      finalConstants.r[AMBIENT_R] = currentMaterial->ka[0];
+      finalConstants.g[AMBIENT_R] = currentMaterial->ka[1];
+      finalConstants.b[AMBIENT_R] = currentMaterial->ka[2];
 
-        finalConstants.r[DIFFUSE_R] = currentMaterial->kd[0];
-        finalConstants.g[DIFFUSE_R] = currentMaterial->kd[1];
-        finalConstants.b[DIFFUSE_R] = currentMaterial->kd[2];
+      finalConstants.r[DIFFUSE_R] = currentMaterial->kd[0];
+      finalConstants.g[DIFFUSE_R] = currentMaterial->kd[1];
+      finalConstants.b[DIFFUSE_R] = currentMaterial->kd[2];
 
-        finalConstants.r[SPECULAR_R] = currentMaterial->ks[0];
-        finalConstants.g[SPECULAR_R] = currentMaterial->ks[1];
-        finalConstants.b[SPECULAR_R] = currentMaterial->ks[2];
+      finalConstants.r[SPECULAR_R] = currentMaterial->ks[0];
+      finalConstants.g[SPECULAR_R] = currentMaterial->ks[1];
+      finalConstants.b[SPECULAR_R] = currentMaterial->ks[2];
 
-        finalSpecExp = currentMaterial->ns;
+      finalSpecExp = currentMaterial->ns;
 
-        if(prevMaterialID != currentMaterialID){
-          kd = kdNormalize(kd, view, ambient, &finalConstants, currentMaterial->ns);
-          prevMaterialID = currentMaterialID;
-        }
-      } else {
-        
-        finalConstants.r[AMBIENT_R] = reflect->r[AMBIENT_R];
-        finalConstants.g[AMBIENT_R] = reflect->g[AMBIENT_R];
-        finalConstants.b[AMBIENT_R] = reflect->b[AMBIENT_R];
-
-        finalConstants.r[DIFFUSE_R] = reflect->r[DIFFUSE_R];
-        finalConstants.g[DIFFUSE_R] = reflect->g[DIFFUSE_R];
-        finalConstants.b[DIFFUSE_R] = reflect->b[DIFFUSE_R];
-
-        finalConstants.r[SPECULAR_R] = reflect->r[SPECULAR_R];
-        finalConstants.g[SPECULAR_R] = reflect->g[SPECULAR_R];
-        finalConstants.b[SPECULAR_R] = reflect->b[SPECULAR_R];
-
-        finalSpecExp = specExp;
-
+      if(prevMaterialID != currentMaterialID){
+        kd = kdNormalize(kd, view, ambient, currentMaterialID);
+        prevMaterialID = currentMaterialID;
       }
 
       if(shaderType == SHADER_GOURAUD) scanline_convert_gouraud(polygons, point, s, zb, kd);
@@ -900,9 +880,10 @@ void draw_polygons( struct matrix *polygons, struct matrix* materials,
   upper-left-front corner is (x, y, z) with width,
   height and depth dimensions.
   ====================*/
-void add_box( struct matrix *polygons,
-              double x, double y, double z,
-              double width, double height, double depth ) {
+void add_box( struct matrix *polygons, struct matrix *textures,
+  double matID,
+  double x, double y, double z,
+  double width, double height, double depth ) {
   // double x0, y0, z0, x1, y1, z1;
   // x0 = x;
   // x1 = x+width;
@@ -985,6 +966,26 @@ void add_box( struct matrix *polygons,
   add_polygon(polygons,p4x,p4y,p4z,p8x,p8y,p8z,p2x,p2y,p2z);
   add_polygon(polygons,p8x,p8y,p8z,p6x,p6y,p6z,p2x,p2y,p2z);
 
+
+
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+  add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+
 }
 
 void add_plane(struct matrix* polygons,
@@ -1022,9 +1023,10 @@ void add_plane(struct matrix* polygons,
 
   should call generate_sphere to create the necessary points
   ====================*/
-void add_sphere( struct matrix * edges,
-                 double cx, double cy, double cz,
-                 double r, int step ) {
+void add_sphere( struct matrix * edges, struct matrix* textures, 
+  double matID,
+  double cx, double cy, double cz,
+  double r, int step ) {
 
   struct matrix *points = generate_sphere(cx, cy, cz, r, step);
   int p0, p1, p2, p3, lat, longt;
@@ -1062,6 +1064,9 @@ void add_sphere( struct matrix * edges,
                    points->m[0][p3],
                    points->m[1][p3],
                    points->m[2][p3]);
+
+      add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+      add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
 
       /*My Triangles*/
       /* p0 = lat * (step) + longt; */
@@ -1108,7 +1113,7 @@ void add_sphere( struct matrix * edges,
            Returns a matrix of those points
   ====================*/
 struct matrix * generate_sphere(double cx, double cy, double cz,
-                                double r, int step ) {
+  double r, int step ) {
 
   struct matrix *points = new_matrix(4, step * step);
   int circle, rotation, rot_start, rot_stop, circ_start, circ_stop;
@@ -1156,9 +1161,10 @@ struct matrix * generate_sphere(double cx, double cy, double cz,
 
   should call generate_torus to create the necessary points
   ====================*/
-void add_torus( struct matrix * edges, 
-                double cx, double cy, double cz,
-                double r1, double r2, int step ) {
+void add_torus( struct matrix * edges, struct matrix *textures,
+  double matID,
+  double cx, double cy, double cz,
+  double r1, double r2, int step ) {
 
   struct matrix *points = generate_torus(cx, cy, cz, r1, r2, step);
   int p0, p1, p2, p3, lat, longt;
@@ -1197,6 +1203,9 @@ void add_torus( struct matrix * edges,
                    points->m[0][p1],
                    points->m[1][p1],
                    points->m[2][p1]);
+
+      add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+      add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
     }
   }
   free_matrix(points);
@@ -1216,7 +1225,7 @@ void add_torus( struct matrix * edges,
            Returns a matrix of those points
   ====================*/
 struct matrix * generate_torus( double cx, double cy, double cz,
-                                double r1, double r2, int step ) {
+  double r1, double r2, int step ) {
 
   struct matrix *points = new_matrix(4, step * step);
   int circle, rotation, rot_start, rot_stop, circ_start, circ_stop;
@@ -1247,7 +1256,8 @@ struct matrix * generate_torus( double cx, double cy, double cz,
   return points;
 }
 
-void add_cylinder( struct matrix* edges,
+void add_cylinder( struct matrix* edges, struct matrix* textures,
+  double matID,
   double cx, double cy, double cz,
   double r, double h, int step){
 
@@ -1292,6 +1302,10 @@ void add_cylinder( struct matrix* edges,
       points->m[0][p1], points->m[1][p1],points->m[2][p1],
       points->m[0][p0], points->m[1][p0],points->m[2][p0]);
 
+    add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+    add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+    add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
+    add_polygon(textures, -1, -1, matID, -1, -1, matID, -1, -1, matID);
   }
 
   free_matrix(points);

@@ -31,7 +31,7 @@
 %token <string> CONSTANTS SAVE_COORDS CAMERA
 %token <string> SPHERE TORUS BOX LINE CS MESH TEXTURE CYLINDER PLANE
 %token <string> STRING
-%token <string> SET MOVE SCALE ROTATE BASENAME SAVE_KNOBS TWEEN FRAMES VARY
+%token <string> SET SET_LIGHT_LOCATION SET_LIGHT_COLOR MOVE SCALE ROTATE BASENAME SAVE_KNOBS TWEEN FRAMES VARY
 %token <string> PUSH POP SAVE GENERATE_RAYFILES
 %token <string> SHADING SHADING_TYPE SETKNOBS FOCAL DISPLAY WEB
 %token <string> CO
@@ -691,11 +691,16 @@ LIGHT STRING DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE
   l->c[1]= $7;
   l->c[2]= $8;
   op[lastop].opcode=LIGHT;
+  op[lastop].op.light.l[0] = $3;
+  op[lastop].op.light.l[1] = $4;
+  op[lastop].op.light.l[2] = $5;
+  op[lastop].op.light.l[3] = 0;
   op[lastop].op.light.c[0] = $6;
   op[lastop].op.light.c[1] = $7;
   op[lastop].op.light.c[2] = $8;
   op[lastop].op.light.c[3] = 0;
   op[lastop].op.light.p = add_symbol($2,SYM_LIGHT,l);
+  op[lastop].op.light.v = NULL;
   lastop++;
 }|
 
@@ -808,6 +813,62 @@ SET STRING DOUBLE
   op[lastop].op.set.p = add_symbol($2,SYM_VALUE,0);
   set_value(op[lastop].op.set.p,$3);
   op[lastop].op.set.val = $3;
+  lastop++;
+}|
+
+SET_LIGHT_LOCATION STRING STRING DOUBLE
+{
+  lineno++;
+  op[lastop].opcode = SET_LIGHT_LOCATION;
+  op[lastop].op.set_light_location.p = add_symbol($2,SYM_LIGHT,0);
+  switch(*$3){
+    case 'x':
+    case 'X':
+      op[lastop].op.set_light_location.axis = 0;
+      break;
+    case 'y':
+    case 'Y':
+      op[lastop].op.set_light_location.axis = 1;
+      break;
+    case 'z':
+    case 'Z':
+      op[lastop].op.set_light_location.axis = 2;
+      break;
+    default:
+      op[lastop].op.set_light_location.axis = 0;
+      break;
+  }
+
+  op[lastop].op.set_light_location.val = $4;
+  op[lastop].op.set_light_location.v = NULL;
+  lastop++;
+}|
+
+SET_LIGHT_LOCATION STRING STRING DOUBLE STRING
+{
+  lineno++;
+  op[lastop].opcode = SET_LIGHT_LOCATION;
+  op[lastop].op.set_light_location.p = add_symbol($2,SYM_LIGHT,0);
+  switch(*$3){
+    case 'x':
+    case 'X':
+      op[lastop].op.set_light_location.axis = 0;
+      break;
+    case 'y':
+    case 'Y':
+      op[lastop].op.set_light_location.axis = 1;
+      break;
+    case 'z':
+    case 'Z':
+      op[lastop].op.set_light_location.axis = 2;
+      break;
+    default:
+      op[lastop].op.set_light_location.axis = 0;
+      break;
+  }
+
+  op[lastop].op.set_light_location.val = $4;
+  op[lastop].op.set_light_location.v = add_symbol($5,SYM_VALUE,0);
   lastop++;
 }|
 

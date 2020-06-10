@@ -47,6 +47,7 @@ color get_lighting( double *normal, double *view, color alight, struct constants
       light[LOCATION][2] = symtab[n].s.l->l[2];
 
       normalize(light[LOCATION]);
+      //printf("%f %f %f\n\n", light[LOCATION][0], light[LOCATION][1], light[LOCATION][2]);
 
       light[COLOR][RED] = symtab[n].s.l->c[RED];
       light[COLOR][GREEN] = symtab[n].s.l->c[GREEN];

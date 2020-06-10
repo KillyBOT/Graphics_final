@@ -1,0 +1,6 @@
+push
+move 250 250 0
+scale 200 200 200
+mesh :texture_test.obj
+display
+save texture_test.png

@@ -15,7 +15,7 @@ y.tab.c: mdl.y symtab.h parser.h
 y.tab.h: mdl.y 
 	bison -d -y mdl.y
 
-symtab.o: symtab.c parser.h matrix.h
+symtab.o: symtab.c parser.h matrix.h kdTree.h
 	gcc -c $(CFLAGS) symtab.c
 
 print_pcode.o: print_pcode.c parser.h matrix.h
@@ -45,7 +45,7 @@ hashTable.o: hashTable.c hashTable.h
 convert.o: convert.c ml6.h matrix.h draw.h kdTree.h convert.h gmath.h material.h
 	$(CC) $(CFLAGS) -c convert.c
 
-kdTree.o: kdTree.c kdTree.h gmath.h matrix.h draw.h
+kdTree.o: kdTree.c kdTree.h gmath.h matrix.h draw.h material.h
 	$(CC) $(CFLAGS) -c kdTree.c
 
 material.o: material.c material.h uthash.h ml6.h

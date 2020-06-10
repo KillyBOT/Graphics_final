@@ -28,35 +28,37 @@ void add_polygons( struct matrix * polys,
                    double x1, double y1, double z1,
                    double x2, double y2, double z2);
 struct kdTree* compute_vertex_normals(struct matrix* polygons);
-void draw_polygons( struct matrix * polys, struct matrix* materials,
+void draw_polygons( struct matrix * polys, struct matrix* textures,
                     struct kdTree* kd,
                     screen s, zbuffer zb,
                     double *view, color ambient,
-                    struct constants *reflect,
-                    double specExp,
                     int shaderType);
 
 struct matrix* stlConvert(struct matrix* m, char* fileName);
 
 //advanced shapes
 //3d shapes
-void add_box( struct matrix * edges,
+void add_box( struct matrix * edges, struct matrix* textures,
+              double matID,
               double x, double y, double z,
               double width, double height, double depth );
 void add_plane( struct matrix * edges,
   double x, double y, double z,
   double width, double height);
-void add_sphere( struct matrix * edges,
+void add_sphere( struct matrix * edges, struct matrix* textures,
+                  double matID,
                  double cx, double cy, double cz,
                  double r, int step );
 struct matrix * generate_sphere(double cx, double cy, double cz,
                                 double r, int step );
-void add_torus( struct matrix * edges,
+void add_torus( struct matrix * edges, struct matrix* textures,
+                double matID,
                 double cx, double cy, double cz,
                 double r1, double r2, int step );
 struct matrix * generate_torus( double cx, double cy, double cz,
                                 double r1, double r2, int step );
-void add_cylinder( struct matrix* edges,
+void add_cylinder( struct matrix* edges, struct matrix* textures,
+  double matID,
   double cx, double cy, double cz,
   double r, double h, int step);
 struct matrix * generate_cylinder( double cx, double cy, double cz,

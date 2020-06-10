@@ -9,6 +9,7 @@
 #define SYM_FILE   5
 #define SYM_STRING 5
 #define SYM_KNOBLIST 6
+#define SYM_KDTREE 7
 
 #define AMBIENT_R 0
 #define DIFFUSE_R 1
@@ -38,6 +39,7 @@ typedef struct
     struct light *l;
     double value;
     struct vary_node* v;
+    struct kdTree* kd;
   } s;
 } SYMTAB;
 

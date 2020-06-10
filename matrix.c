@@ -346,6 +346,7 @@ void copy_matrix(struct matrix *a, struct matrix *b) {
 
   int r, c;
   b->lastcol = a->lastcol;
+  if(b->cols < a->cols) grow_matrix(b, a->cols);
 
   for (r=0; r < a->rows; r++) 
     for (c=0; c < a->cols; c++)  

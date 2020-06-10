@@ -6,6 +6,8 @@
 #include "gmath.h"
 #include "matrix.h"
 #include "draw.h"
+#include "material.h"
+#include "symtab.h"
 
 struct kdTree* kdCreate(){
 	struct kdTree* kd = malloc(sizeof(struct kdTree));
@@ -110,8 +112,33 @@ color kdGetColor(struct kdTree* kd, double* vertex){
 	return kdGetNode(kd, vertex)->c;
 }
 
-struct kdTree* kdNormalize(struct kdTree* kd, double *view, color ambient, struct constants* reflect, double specExp){
+struct kdTree* kdNormalize(struct kdTree* kd, double *view, color ambient, int matID){
+
+	struct constants* reflect = malloc(sizeof(struct constants));
+	struct material* currentMat = find_material(find_material_name(matID));
+	double specExp;
+
+	//print_materials();
+
+	reflect->r[AMBIENT_R] = currentMat->ka[0];
+	reflect->g[AMBIENT_R] = currentMat->ka[1];
+	reflect->b[AMBIENT_R] = currentMat->ka[2];
+
+	reflect->r[DIFFUSE_R] = currentMat->kd[0];
+	reflect->g[DIFFUSE_R] = currentMat->kd[1];
+	reflect->b[DIFFUSE_R] = currentMat->kd[2];
+
+	reflect->r[SPECULAR_R] = currentMat->ks[0];
+	reflect->g[SPECULAR_R] = currentMat->ks[1];
+	reflect->b[SPECULAR_R] = currentMat->ks[2];
+
+	//print_constants(reflect);
+
+	specExp = currentMat->ns;
+
 	kd->root = kdNormalize_helper(kd->root, view, ambient, reflect, specExp);
+	//kdPrint(kd);
+	free(reflect);
 	return kd;
 }
 struct kdNode* kdNormalize_helper(struct kdNode* k, double *view, color ambient, struct constants* reflect, double specExp){
@@ -133,7 +160,7 @@ struct kdTree* kdTransform(struct kdTree* kd, struct matrix* m){
 
 
 	kd->root = kdTransform_helper(kd->root, m, mn);
-
+	//kdPrint(kd);
 	struct kdTree* kdNew = kdCreate();
 	kdCopy(kdNew, kd);
 	kdFree(kd);
@@ -182,6 +209,7 @@ void kdCopy_helper(struct kdNode* k, struct kdTree* dest){
 	if(k->right != NULL) kdCopy_helper(k->right,dest);
 
 	kdInsert(dest, k->vertex, k->normal);
+	//kdPrint(dest);
 }
 
 void kdCheck(struct kdTree* kd, struct matrix* m){

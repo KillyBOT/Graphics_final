@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "symtab.h"
 #include "matrix.h"
+#include "kdTree.h"
 
 SYMTAB symtab[MAX_SYMBOLS];
 int lastsym = 0;
@@ -75,6 +76,9 @@ void print_symtab()
         case SYM_KNOBLIST:
           printf("Type: SYM_KNOBLIST\n");
           print_knobs(symtab[i].s.v);
+        case SYM_KDTREE:
+          printf("Type: SYM_KDTREE\n");
+          kdPrint(symtab[i].s.kd);
         }
       printf("\n");
     }
@@ -120,6 +124,9 @@ SYMTAB *add_symbol(char *name, int type, void *data)
       break;
     case SYM_KNOBLIST:
       t->s.v = (struct vary_node*)data;
+      break;
+    case SYM_KDTREE:
+      t->s.kd = (struct kdTree*)data;
       break;
     }
   return (SYMTAB *)&(symtab[lastsym-1]);
