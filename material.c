@@ -22,6 +22,8 @@ void add_material(char *name){
 
 		new->name = strdup(name);
 		new->map_kd = NULL;
+		new->map_ka = NULL;
+		new->map_bump = NULL;
 		new->id = currentID;
 
 		new_id->id = currentID;
@@ -70,6 +72,7 @@ void delete_material_all(){
 	HASH_ITER(hh, m, current, tmp){
 		HASH_DEL(m, current);
 		free(current->name);
+
 		if(current->map_kd != NULL){
 			free(current->map_kd);
 			for(int n = 0; n < current->map_kd_cols; n++){
@@ -77,6 +80,15 @@ void delete_material_all(){
 			}
 			free(current->map_kd_raw);
 		}
+
+		if(current->map_ka != NULL){
+			free(current->map_ka);
+			for(int n = 0; n < current->map_ka_cols; n++){
+				free(current->map_ka_raw[n]);
+			}
+			free(current->map_ka_raw);
+		}
+
 		free(current);
 	}
 

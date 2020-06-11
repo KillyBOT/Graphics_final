@@ -1,6 +1,8 @@
 frames 120
 basename bookshelf
 
+ambient 255 255 255
+
 push
 move 250 100 0
 scale 125 125 125

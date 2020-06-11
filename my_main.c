@@ -532,7 +532,7 @@ void my_main() {
   double step_3d = 50;
   double theta, xval, yval, zval;
 
-  int shaderType = SHADER_GOURAUD;
+  int shaderType = SHADER_PHONG;
 
   //Lighting values here for easy access
   color ambient;
@@ -884,15 +884,9 @@ void my_main() {
           break;
         case AMBIENT:
 
-          find_material("DefaultLight")->ka[0] = op[i].op.ambient.c[0];
-          find_material("DefaultLight")->ka[1] = op[i].op.ambient.c[1];
-          find_material("DefaultLight")->ka[2] = op[i].op.ambient.c[2];
-
-          if(op[i].op.ambient.p != NULL){
-            find_material("DefaultLight")->ka[0] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
-            find_material("DefaultLight")->ka[1] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
-            find_material("DefaultLight")->ka[2] *= lookup_symbol(op[i].op.ambient.p->name)->s.value;
-          }
+          ambient.red = op[i].op.ambient.c[0];
+          ambient.green = op[i].op.ambient.c[1];
+          ambient.blue = op[i].op.ambient.c[2];
 
           break;
         case SHADING:

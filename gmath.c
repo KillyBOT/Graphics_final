@@ -6,6 +6,7 @@
 #include "matrix.h"
 #include "ml6.h"
 #include "symtab.h"
+#include "material.h"
 
 /*============================================
   IMPORANT NOTE
@@ -22,7 +23,7 @@
 
 
 //lighting functions
-color get_lighting( double *normal, double *view, color alight, struct constants *reflect, double specExp) {
+color get_lighting( double *normal, double *view, color alight, struct material* mat, double u, double v) {
 
   color a, d, s, i;
   //normalize(normal);
@@ -32,7 +33,7 @@ color get_lighting( double *normal, double *view, color alight, struct constants
   i.green = 0;
   i.blue = 0;
 
-  a = calculate_ambient( alight, reflect );
+  a = calculate_ambient( alight, mat, u, v);
 
   i.red += a.red;
   i.green += a.green;
@@ -53,8 +54,8 @@ color get_lighting( double *normal, double *view, color alight, struct constants
       light[COLOR][GREEN] = symtab[n].s.l->c[GREEN];
       light[COLOR][BLUE] = symtab[n].s.l->c[BLUE];
 
-      d = calculate_diffuse( light, reflect, normal );
-      s = calculate_specular( light, reflect, view, normal, specExp);
+      d = calculate_diffuse( light, mat, normal, u, v);
+      s = calculate_specular( light, mat, view, normal, u, v);
 
       //printf("%d %d %d\t %d %d %d\n", d.red, d.green, d.blue, s.red, s.green, s.blue);
 
@@ -75,18 +76,38 @@ color get_lighting( double *normal, double *view, color alight, struct constants
   return i;
 }
 
-color calculate_ambient(color alight, struct constants *reflect ) {
+color calculate_ambient(color alight, struct material* mat, double u, double v) {
   color a;
-  a.red = alight.red * reflect->r[AMBIENT_R];
-  a.green = alight.green * reflect->g[AMBIENT_R];
-  a.blue = alight.blue * reflect->b[AMBIENT_R];;
+  color t;
+  int uLoc, vLoc;
+
+  if(mat->map_ka != NULL){
+    uLoc = (int)(u * mat->map_ka_cols);
+    vLoc = (int)(v * mat->map_ka_rows);
+
+    if(uLoc >= mat->map_ka_cols) uLoc = mat->map_ka_cols - 1;
+    if(vLoc >= mat->map_ka_rows) vLoc = mat->map_ka_rows - 1;
+    if(uLoc < 0) uLoc = 0;
+    if(vLoc < 0) vLoc = 0;
+
+    t.red = mat->map_ka_raw[uLoc][vLoc].red;
+    t.green = mat->map_ka_raw[uLoc][vLoc].green;
+    t.blue = mat->map_ka_raw[uLoc][vLoc].blue;
+    //printf("%d %d %d\n", t.red, t.green, t.blue);
+  }
+
+  a.red = t.red < alight.red ? t.red * mat->ka[0] : alight.red * mat->ka[0];
+  a.green = t.green < alight.green ? t.green * mat->ka[1] : alight.green * mat->ka[1];
+  a.blue = t.blue < alight.blue ? t.blue * mat->ka[2] : alight.blue * mat->ka[2];
 
   return a;
 }
 
-color calculate_diffuse(double light[2][3], struct constants *reflect, double *normal ) {
+color calculate_diffuse(double light[2][3], struct material* mat, double *normal, double u, double v) {
   color d;
+  color t;
   double dot;
+  int uLoc, vLoc;
   double lvector[3];
 
   lvector[0] = light[LOCATION][0];
@@ -95,14 +116,36 @@ color calculate_diffuse(double light[2][3], struct constants *reflect, double *n
 
   dot = dot_product(normal, lvector);
 
-  d.red = (int)(light[COLOR][RED] * reflect->r[DIFFUSE_R] * dot);
-  d.green = (int)(light[COLOR][GREEN] * reflect->g[DIFFUSE_R] * dot);
-  d.blue = (int)(light[COLOR][BLUE] * reflect->b[DIFFUSE_R] * dot);
+  if(mat->map_kd != NULL && u >= 0 && v >= 0){
+    uLoc = (int)(u * mat->map_kd_cols);
+    vLoc = (int)(v * mat->map_kd_rows);
+
+    if(uLoc == mat->map_kd_cols) uLoc--;
+    if(vLoc == mat->map_kd_rows) vLoc--;
+
+    t.red = mat->map_kd_raw[uLoc][vLoc].red;
+    t.green = mat->map_kd_raw[uLoc][vLoc].green;
+    t.blue = mat->map_kd_raw[uLoc][vLoc].blue;
+    //printf("%d %d %d %d %d\n", uLoc, vLoc, t.red, t.green, t.blue);
+
+    d.red = t.red < (int)light[COLOR][RED] ? (int)t.red * mat->kd[RED] * dot : (int)light[COLOR][RED] * mat->kd[RED] * dot;
+    d.green = t.green < (int)light[COLOR][GREEN] ? (int)t.green * mat->kd[GREEN] * dot : (int)light[COLOR][GREEN] * mat->kd[GREEN] * dot;
+    d.blue = t.blue < (int)light[COLOR][BLUE] ? (int)t.blue * mat->kd[BLUE] * dot : (int)light[COLOR][BLUE] * mat->kd[BLUE] * dot;
+    //printf("%d %d %d\n", d.red, d.green, d.blue);
+
+  } else {
+    d.red = (int)light[COLOR][RED] * mat->kd[RED] * dot;
+    d.green = (int)light[COLOR][GREEN] * mat->kd[GREEN] * dot;
+    d.blue = (int)light[COLOR][BLUE] * mat->kd[BLUE] * dot;
+  }
+
+  
 
   return d;
+  
 }
 
-color calculate_specular(double light[2][3], struct constants *reflect, double *view, double *normal, double specExp) {
+color calculate_specular(double light[2][3], struct material *mat, double *view, double *normal, double u, double v) {
   color s;
   double lvector[3];
   double result;
@@ -119,11 +162,11 @@ color calculate_specular(double light[2][3], struct constants *reflect, double *
 
   result = dot_product(n, view );
   result = result > 0 ? result : 0;
-  result = pow( result, specExp );
+  result = pow( result, mat->ns );
 
-  s.red = (int)(light[COLOR][RED] * reflect->r[SPECULAR_R] * result);
-  s.green = (int)(light[COLOR][GREEN] * reflect->g[SPECULAR_R] * result);
-  s.blue = (int)(light[COLOR][BLUE] * reflect->b[SPECULAR_R] * result);
+  s.red = (int)(light[COLOR][RED] * mat->ks[0] * result);
+  s.green = (int)(light[COLOR][GREEN] * mat->ks[1] * result);
+  s.blue = (int)(light[COLOR][BLUE] * mat->ks[2] * result);
 
   return s;
 }

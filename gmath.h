@@ -4,6 +4,7 @@
 #include "matrix.h"
 #include "ml6.h"
 #include "symtab.h"
+#include "material.h"
 
 // constants for lighting
 #define LOCATION 0
@@ -16,10 +17,10 @@
 #define SPECULAR_EXP 32
 
 // lighting functions
-color get_lighting( double *normal, double *view, color alight, struct constants *reflect, double specExp);
-color calculate_ambient(color alight, struct constants *reflect );
-color calculate_diffuse(double light[2][3], struct constants *reflect, double *normal );
-color calculate_specular(double light[2][3], struct constants *reflect, double *view, double *normal, double specExp);
+color get_lighting( double *normal, double *view, color alight, struct material* mat, double u, double v);
+color calculate_ambient(color alight, struct material* mat, double u, double v);
+color calculate_diffuse(double light[2][3], struct material* mat, double *normal, double u, double v);
+color calculate_specular(double light[2][3], struct material* mat, double *view, double *normal, double u, double v);
 void limit_color( color * c );
 
 // vector functions

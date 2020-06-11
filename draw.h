@@ -6,20 +6,29 @@
 #include "ml6.h"
 #include "symtab.h"
 #include "kdTree.h"
+#include "material.h"
 
 #define SHADER_FLAT 0
 #define SHADER_GOURAUD 1
 #define SHADER_PHONG 2
 #define SHADER_WIREFRAME 3
 
-void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1);
-void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd);
-void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, double* v0, double* v1,
-  double* view, color ambient, struct constants* reflect, double specExp);
-void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd,
-  double* view, color ambient, struct constants* reflect, double specExp);
-void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c);
-void scanline_convert_flat( struct matrix* points, int i, screen s, zbuffer zb, double* view, color ambient, struct constants* reflect, double specExp, double sNormal[3]);
+void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, 
+  screen s, zbuffer zb, color c0, color c1);
+void scanline_convert_gouraud( struct matrix *points, struct matrix *textures, 
+  int i, screen s, zbuffer zb, struct kdTree* kd, struct material* mat);
+void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, 
+  double u0, double u1, double v0, double v1, 
+  screen s, zbuffer zb, double* vec0, double* vec1,
+  double* view, color ambient, struct material* mat);
+void scanline_convert_phong( struct matrix *points, struct matrix* textures, 
+  int i, screen s, zbuffer zb, struct kdTree* kd,
+  double* view, color ambient, struct material* mat);
+void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, 
+  double u0, double u1, double v0, double v1, 
+  struct material* mat, screen s, zbuffer zb, color c);
+void scanline_convert_flat( struct matrix* points, struct matrix* textures, 
+  int i, screen s, zbuffer zb, double* view, color ambient, struct material* mat, double sNormal[3]);
 void draw_wireframe(struct matrix* points, int i, screen s, zbuffer zb, color c);
 
 //polygon organization

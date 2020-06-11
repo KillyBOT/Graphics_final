@@ -1,6 +1,14 @@
+frames 120
+basename texture_test
+
 push
 move 250 250 0
 scale 200 200 200
+rotate y 360 v0
+rotate x 360 v1
 mesh :texture_test.obj
 display
 save texture_test.png
+
+vary v0 0 59 0 1
+vary v1 60 119 0 1

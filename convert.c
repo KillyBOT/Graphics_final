@@ -351,10 +351,12 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, double matID, char* f
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+									add_point(t, -1, -1, currentMatID);
 								}
 
 								for(int n = 0; n < 4; n++){
 									add_point(p, vList->m[0][(int)vertexLarge[n]], vList->m[1][(int)vertexLarge[n]], vList->m[2][(int)vertexLarge[n]]);
+									add_point(t, -1, -1, currentMatID);
 									if(n == 0) n++;
 
 								}
@@ -373,9 +375,9 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, double matID, char* f
 							reti = regexec(&tFTN, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf/%lf/%lf %lf/%lf/%lf %lf/%lf/%lf",
-									vertex, textureLarge, normal,
-									vertex+1, textureLarge+1, normal+1,
-									vertex+2, textureLarge+2, normal+2);
+									vertex, texture, normal,
+									vertex+1, texture+1, normal+1,
+									vertex+2, texture+2, normal+2);
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
@@ -441,9 +443,9 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, double matID, char* f
 							reti = regexec(&tFT, sBuffer, 0, NULL, 0);
 							if(!reti){
 								sscanf(sBuffer, "%lf/%lf %lf/%lf %lf/%lf",
-									vertex, textureLarge,
-									vertex+1, textureLarge+1,
-									vertex+2, textureLarge+2);
+									vertex, texture,
+									vertex+1, texture+1,
+									vertex+2, texture+2);
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
@@ -468,6 +470,7 @@ struct kdTree* convert(struct matrix* p, struct matrix* t, double matID, char* f
 
 								for(int n = 0; n < 3; n++){
 									add_point(p, vList->m[0][(int)vertex[n]], vList->m[1][(int)vertex[n]], vList->m[2][(int)vertex[n]]);
+									add_point(t, -1, -1, currentMatID);
 								}
 
 								done = 1;
@@ -608,17 +611,64 @@ void create_materials(char* fileName){
 					sscanf(buffer, "%d", numBuffer);
 					current->map_kd_colorDepth = numBuffer[0];
 
-					current->map_kd_raw = (color **)malloc(sizeof(color*)*current->map_kd_cols);
+					current->map_kd_raw = (color **)malloc(sizeof(color*)*(current->map_kd_cols));
 					for(int x = 0; x < current->map_kd_cols; x++){
-						current->map_kd_raw[x] = (color*)malloc(sizeof(color)*current->map_kd_rows);
+						current->map_kd_raw[x] = (color*)malloc(sizeof(color)*(current->map_kd_rows));
 					}
 
 					for(int x = 0; x < current->map_kd_cols; x++){
 						for(int y = 0; y < current->map_kd_rows; y++){
 							fread(colorBuffer, 1, 3, texture);
-							current->map_kd_raw[x][y].red = (unsigned char)(255 * (colorBuffer[0]/current->map_kd_colorDepth));
-							current->map_kd_raw[x][y].green = (unsigned char)(255 * (colorBuffer[1]/current->map_kd_colorDepth));
-							current->map_kd_raw[x][y].blue = (unsigned char)(255 * (colorBuffer[2]/current->map_kd_colorDepth));
+							current->map_kd_raw[x][y].red = (unsigned char)(255 * ((double)colorBuffer[0]/(double)current->map_kd_colorDepth));
+							current->map_kd_raw[x][y].green = (unsigned char)(255 * ((double)colorBuffer[1]/(double)current->map_kd_colorDepth));
+							current->map_kd_raw[x][y].blue = (unsigned char)(255 * ((double)colorBuffer[2]/(double)current->map_kd_colorDepth));
+							//printf("%d %d %d\n", colorBuffer[0], colorBuffer[1], colorBuffer[2]);
+							//printf("%d %d %d\n", current->map_kd_raw[x][y].red, current->map_kd_raw[x][y].green, current->map_kd_raw[x][y].blue);
+						}
+					}
+
+					fclose(texture);
+
+				}
+				if(!strcmp(lineType, "map_Ka")){
+					mapFileName = strrchr(sBuffer, ' ');
+					if(mapFileName != NULL) mapFileName++;
+					else {
+						mapFileName = sBuffer;
+					}
+					//printf("%s\n", mapFileName);
+					FILE* texture = fopen(mapFileName, "r"); //We'll assume it's a PPM file for now...
+					unsigned char colorBuffer[3];
+
+					current->map_ka = strdup(mapFileName);
+
+					fgets(buffer,BUFFER_SIZE, texture);
+					//printf("%s\n", buffer);
+					fgets(buffer,BUFFER_SIZE, texture);
+					//printf("%s\n", buffer);
+
+					sscanf(buffer, "%d %d", numBuffer, numBuffer+1);
+					current->map_ka_cols = numBuffer[0];
+					current->map_ka_rows = numBuffer[1];
+
+					fgets(buffer, BUFFER_SIZE, texture);
+
+					sscanf(buffer, "%d", numBuffer);
+					current->map_ka_colorDepth = numBuffer[0];
+
+					current->map_ka_raw = (color **)malloc(sizeof(color*)*(current->map_ka_cols));
+					for(int x = 0; x < current->map_ka_cols; x++){
+						current->map_ka_raw[x] = (color*)malloc(sizeof(color)*(current->map_ka_rows));
+					}
+
+					for(int x = 0; x < current->map_ka_cols; x++){
+						for(int y = 0; y < current->map_ka_rows; y++){
+							fread(colorBuffer, 1, 3, texture);
+							current->map_ka_raw[x][y].red = (unsigned char)(255 * ((double)colorBuffer[0]/(double)current->map_ka_colorDepth));
+							current->map_ka_raw[x][y].green = (unsigned char)(255 * ((double)colorBuffer[1]/(double)current->map_ka_colorDepth));
+							current->map_ka_raw[x][y].blue = (unsigned char)(255 * ((double)colorBuffer[2]/(double)current->map_ka_colorDepth));
+							//printf("%d %d %d\n", colorBuffer[0], colorBuffer[1], colorBuffer[2]);
+							//printf("%d %d %d\n", current->map_kd_raw[x][y].red, current->map_kd_raw[x][y].green, current->map_kd_raw[x][y].blue);
 						}
 					}
 

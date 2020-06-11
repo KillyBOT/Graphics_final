@@ -23,6 +23,18 @@ struct material{
 	int map_kd_cols;
 	int map_kd_colorDepth;
 
+	char *map_ka;
+	color** map_ka_raw;
+	int map_ka_rows;
+	int map_ka_cols;
+	int map_ka_colorDepth;
+
+	char *map_bump;
+	color** map_bump_raw;
+	int map_bump_rows;
+	int map_bump_cols;
+	int map_bump_colorDepth;
+
 	// char map_Kd[128];
 	// char map_Ns[128];
 	// char map_d[128];

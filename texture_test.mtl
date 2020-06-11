@@ -1,7 +1,8 @@
 newmtl Block
 Ns 64
-Ka .1 .1 .1
+Ka 1 1 1
 Kd .5 .5 .5
-Ks .5 .5 .5
+Ks .1 .1 .1
 illum 2
+map_Ka test_texture.ppm
 map_Kd test_texture.ppm

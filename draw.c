@@ -20,7 +20,9 @@
 
   Line algorithm specifically for horizontal scanlines
   ====================*/
-void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1) {
+void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, 
+  screen s, zbuffer zb, color c0, color c1) {
+
   int tempX, tempZ;
   color tempC;
   double cR, cG, cB, dcR, dcG, dcB;
@@ -71,42 +73,58 @@ void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s
   }
 }
 
-void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, double* v0, double* v1,
-  double* view, color ambient, struct constants* reflect, double specExp) {
+void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, 
+  double u0, double u1, double v0, double v1, 
+  screen s, zbuffer zb, double* vec0, double* vec1,
+  double* view, color ambient, struct material* mat) {
 
   int tempX, tempZ;
+  double tempU, tempV;
+  double u, v;
+  double du, dv;
   double v0f[3];
   double v1f[3];
-  double v[3];
-  double vn[3];
-  double dv[3];
+  double vec[3];
+  double dVec[3];
   double finalV[3];
   color c;
   //swap if needed to assure left->right drawing
-  set(v0f, v0);
-  set(v1f, v1);
+  set(v0f, vec0);
+  set(v1f, vec1);
   if (x0 > x1) {
     tempX = x0;
     tempZ = z0;
+    tempU = u0;
+    tempV = v0;
     x0 = x1;
     z0 = z1;
+    u0 = u1;
+    v0 = v1;
     x1 = tempX;
     z1 = tempZ;
-    set(v1f, v0);
-    set(v0f, v1);
+    u1 = tempU;
+    v1 = tempV;
+    set(v1f, vec0);
+    set(v0f, vec1);
   }
 
   double delta_z;
   int distance = x1 - x0 + 1;
   delta_z = (x1 - x0) != 0 ? (z1 - z0) / distance : 0;
   int x;
-  double z = z0;
+  double z;
 
-  set(v,v0f);
+  set(vec,v0f);
+  u = u0;
+  v = v0;
+  z = z0;
 
-  dv[0] = distance != 0 ? (v1f[0] - v0f[0]) / distance : 0;
-  dv[1] = distance != 0 ? (v1f[1] - v0f[1]) / distance : 0;
-  dv[2] = distance != 0 ? (v1f[2] - v0f[2]) / distance : 0;
+  dVec[0] = distance != 0 ? (v1f[0] - v0f[0]) / distance : 0;
+  dVec[1] = distance != 0 ? (v1f[1] - v0f[1]) / distance : 0;
+  dVec[2] = distance != 0 ? (v1f[2] - v0f[2]) / distance : 0;
+
+  du = distance != 0 ? (u1 - u0) / distance : 0;
+  dv = distance != 0 ? (v1 - v0) / distance : 0;
 
   // double* perspectiveView;
 
@@ -127,10 +145,10 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
 
   for(x=x0; x <= x1; x++) {
 
-    set(vn, v);
     //normalize(vn);
 
-    c = get_lighting(v, view, ambient, reflect, specExp);
+    c = get_lighting(vec, view, ambient, mat, u, v);
+    //printf("u:[%lf]\tv:[%lf]\n", u, v);
 
     // finalV[0] = x;
     // finalV[1] = y;
@@ -144,15 +162,19 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
     plot(s, zb, c, x, y, z);
 
     z+= delta_z;
-    //add(v, dv);
-    v[0] += dv[0];
-    v[1] += dv[1];
-    v[2] += dv[2];
+    u += du;
+    v += dv;
+    vec[0] += dVec[0];
+    vec[1] += dVec[1];
+    vec[2] += dVec[2];
 
   }
 }
 
-void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c) {
+void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, 
+  double u0, double u1, double v0, double v1,
+  struct material* mat, screen s, zbuffer zb, color c) {
+
   int tempX, tempZ;
   //swap if needed to assure left->right drawing
   if (x0 > x1) {
@@ -187,10 +209,11 @@ void draw_scanline_flat(int x0, double z0, int x1, double z1, int y, screen s, z
 
   Fills in polygon i by drawing consecutive horizontal (or vertical) lines.
   ====================*/
-void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd) {
+void scanline_convert_gouraud( struct matrix *points, struct matrix* textures,
+  int i, screen s, zbuffer zb, struct kdTree* kd, struct material* mat) {
 
   int top, mid, bot, y;
-  double topV[3], midV[3], botV[3];
+  double vTop[3], vMid[3], vBot[3];
   // double topN[3], midN[3], botN[3];
   int distance0, distance1, distance2;
   double x0, x1, y0, y1, y2, dx0, dx1, z0, z1, dz0, dz1;
@@ -264,21 +287,21 @@ void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer z
   dz0 = distance0 > 0 ? (points->m[2][top]-points->m[2][bot])/distance0 : 0;
   dz1 = distance1 > 0 ? (points->m[2][mid]-points->m[2][bot])/distance1 : 0;
 
-  topV[0] = points->m[0][top];
-  topV[1] = points->m[1][top];
-  topV[2] = points->m[2][top];
+  vTop[0] = points->m[0][top];
+  vTop[1] = points->m[1][top];
+  vTop[2] = points->m[2][top];
 
-  midV[0] = points->m[0][mid];
-  midV[1] = points->m[1][mid];
-  midV[2] = points->m[2][mid];
+  vMid[0] = points->m[0][mid];
+  vMid[1] = points->m[1][mid];
+  vMid[2] = points->m[2][mid];
 
-  botV[0] = points->m[0][bot];
-  botV[1] = points->m[1][bot];
-  botV[2] = points->m[2][bot];
+  vBot[0] = points->m[0][bot];
+  vBot[1] = points->m[1][bot];
+  vBot[2] = points->m[2][bot];
 
-  iTop = kdGetColor(kd, topV);
-  iMid = kdGetColor(kd, midV);
-  iBot = kdGetColor(kd, botV);
+  iTop = kdGetColor(kd, vTop);
+  iMid = kdGetColor(kd, vMid);
+  iBot = kdGetColor(kd, vBot);
 
   c0R = iBot.red;
   c0G = iBot.green;
@@ -349,17 +372,20 @@ void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer z
   }//end scanline loop
 }
 
-void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd, 
-  double* view, color ambient, struct constants* reflect, double specExp) {
+void scanline_convert_phong( struct matrix *points, struct matrix *textures,
+  int i, screen s, zbuffer zb, struct kdTree* kd, 
+  double* view, color ambient, struct material* mat) {
 
   int top, mid, bot, y;
-  double topV[3], midV[3], botV[3];
+  double vTop[3], vMid[3], vBot[3];
   double nTop[3], nMid[3], nBot[3];
+  double tTop[2], tMid[2], tBot[2];
   int distance0, distance1, distance2;
   double x0, x1, y0, y1, y2, dx0, dx1, z0, z1, dz0, dz1;
-  double v0[3], v1[3];
-  double v0n[3], v1n[3];
-  double dv0[3], dv1[3];
+  double u0, u1, v0, v1, du0, du1, dv0, dv1;
+  double vec0[3], vec1[3];
+  double vec0n[3], vec1n[3];
+  double dVec0[3], dVec1[3];
   int flip = 0;
 
   z0 = z1 = dz0 = dz1 = 0;
@@ -426,82 +452,114 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
   dz0 = distance0 > 0 ? (points->m[2][top]-points->m[2][bot])/distance0 : 0;
   dz1 = distance1 > 0 ? (points->m[2][mid]-points->m[2][bot])/distance1 : 0;
 
-  topV[0] = points->m[0][top];
-  topV[1] = points->m[1][top];
-  topV[2] = points->m[2][top];
+  vTop[0] = points->m[0][top];
+  vTop[1] = points->m[1][top];
+  vTop[2] = points->m[2][top];
+  tTop[0] = textures->m[0][top];
+  tTop[1] = textures->m[1][top];
 
-  midV[0] = points->m[0][mid];
-  midV[1] = points->m[1][mid];
-  midV[2] = points->m[2][mid];
+  vMid[0] = points->m[0][mid];
+  vMid[1] = points->m[1][mid];
+  vMid[2] = points->m[2][mid];
+  tMid[0] = textures->m[0][mid];
+  tMid[1] = textures->m[1][mid];
 
-  botV[0] = points->m[0][bot];
-  botV[1] = points->m[1][bot];
-  botV[2] = points->m[2][bot];
+  vBot[0] = points->m[0][bot];
+  vBot[1] = points->m[1][bot];
+  vBot[2] = points->m[2][bot];
+  tBot[0] = textures->m[0][bot];
+  tBot[1] = textures->m[1][bot];
 
-  set(nTop,kdGetNormal(kd, topV));
-  set(nMid,kdGetNormal(kd, midV));
-  set(nBot,kdGetNormal(kd, botV));
+  set(nTop,kdGetNormal(kd, vTop));
+  set(nMid,kdGetNormal(kd, vMid));
+  set(nBot,kdGetNormal(kd, vBot));
 
   //printf("Top: %f %f %f\nMid: %f %f %f\nBot: %f %f %f\n\n", nTop[0], nTop[1], nTop[2], nMid[0], nMid[1], nMid[2], nBot[0], nBot[1], nBot[2]);
+  // printf("Texture Top: u:[%lf] v:[%lf]\nTexture Mid: u:[%lf] v:[%lf]\nTexture Bot: u:[%lf] v:[%lf]\n",
+  //   tTop[0], tTop[1],
+  //   tMid[0], tMid[1],
+  //   tBot[0], tBot[1]);
   //printf("%f\n", nBot[0] * nBot[0] + nBot[1] * nBot[1] + nBot[2] * nBot[2]);
 
-  set(v0, nBot);
-  set(v1, nBot);
+  set(vec0, nBot);
+  set(vec1, nBot);
 
-  dv0[0] = distance0 > 0 ? (nTop[0]-nBot[0])/distance0 : 0;
-  dv0[1] = distance0 > 0 ? (nTop[1]-nBot[1])/distance0 : 0;
-  dv0[2] = distance0 > 0 ? (nTop[2]-nBot[2])/distance0 : 0;
+  u0 = tBot[0];
+  v0 = tBot[1];
+  u1 = tBot[0];
+  v1 = tBot[1];
 
-  dv1[0] = distance1 > 0 ? (nMid[0]-nBot[0])/distance1 : 0;
-  dv1[1] = distance1 > 0 ? (nMid[1]-nBot[1])/distance1 : 0;
-  dv1[2] = distance1 > 0 ? (nMid[2]-nBot[2])/distance1 : 0;
+  dVec0[0] = distance0 > 0 ? (nTop[0]-nBot[0])/distance0 : 0;
+  dVec0[1] = distance0 > 0 ? (nTop[1]-nBot[1])/distance0 : 0;
+  dVec0[2] = distance0 > 0 ? (nTop[2]-nBot[2])/distance0 : 0;
 
-  //printf("dv0: %f %f %f\n", dv0[0], dv0[1], dv0[2]);
+  dVec1[0] = distance1 > 0 ? (nMid[0]-nBot[0])/distance1 : 0;
+  dVec1[1] = distance1 > 0 ? (nMid[1]-nBot[1])/distance1 : 0;
+  dVec1[2] = distance1 > 0 ? (nMid[2]-nBot[2])/distance1 : 0;
+
+  du0 = distance0 > 0 ? (tTop[0]-tBot[0])/distance0 : 0;
+  dv0 = distance0 > 0 ? (tTop[1]-tBot[1])/distance0 : 0;
+
+  du1 = distance1 > 0 ? (tMid[0]-tBot[0])/distance1 : 0;
+  dv1 = distance1 > 0 ? (tMid[1]-tBot[1])/distance1 : 0;
+
+  //printf("dVec0: %f %f %f\n", dVec0[0], dVec0[1], dVec0[2]);
+  //printf("u0:[%lf] u1:[%lf] v0:[%lf] v1:[%lf] du0:[%lf] du1:[%lf] dv0:[%lf] dv1:[%lf]\n",u0,u1,v0,v1,du0,du1,dv0,dv1);
 
   while ( y <= (int)points->m[1][top] ) {
 
     if ( !flip && y >= (int)(points->m[1][mid]) ) {
       flip = 1;
-      dx1 = distance2 > 0 ? (points->m[0][top]-points->m[0][mid])/distance2 : 0;
-      dz1 = distance2 > 0 ? (points->m[2][top]-points->m[2][mid])/distance2 : 0;
+      dx1 = distance2 > 0 ? (vTop[0]-vMid[0])/distance2 : 0;
+      dz1 = distance2 > 0 ? (vTop[2]-vMid[1])/distance2 : 0;
 
-      dv1[0] = distance2 > 0 ? (nTop[0]-nMid[0])/distance2 : 0;
-      dv1[1] = distance2 > 0 ? (nTop[1]-nMid[1])/distance2 : 0;
-      dv1[2] = distance2 > 0 ? (nTop[2]-nMid[2])/distance2 : 0;
+      du1 = distance2 > 0 ? (tTop[0]-tMid[0])/distance2 : 0;
+      dv1 = distance2 > 0 ? (tTop[1]-tMid[1])/distance2 : 0;
 
-      set(v1, nMid);
+      dVec1[0] = distance2 > 0 ? (nTop[0]-nMid[0])/distance2 : 0;
+      dVec1[1] = distance2 > 0 ? (nTop[1]-nMid[1])/distance2 : 0;
+      dVec1[2] = distance2 > 0 ? (nTop[2]-nMid[2])/distance2 : 0;
 
-      x1 = points->m[0][mid];
-      z1 = points->m[2][mid];
+      set(vec1, nMid);
+
+      x1 = vMid[0];
+      z1 = vMid[2];
+      u1 = tMid[0];
+      v1 = tMid[1];
     }//end flip code
 
-    //normalize(v0n);
-    //normalize(v1n);
-    //printf("%f %f %f %f %f %f\n%d %d %d %d %d %d\n",c0R, c0G, c0B, c1R, c1G, c1B,c0.red,c0.green,c0.blue,c1.red,c1.green,c1.blue);
+    //normalize(vec0n);
+    //normalize(vec1n);
 
-    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0, v1, view, ambient, reflect, specExp);
-    //printf("%f %f %f\n", v0[0], v0[1], v0[2]);
+    draw_scanline_phong(x0, z0, x1, z1, y, u0, u1, v0, v1, s, zb, vec0, vec1, view, ambient, mat);
+    //printf("%f %f %f\n", vec0[0], vec0[1], vec0[2]);
 
     x0+= dx0;
     x1+= dx1;
     z0+= dz0;
     z1+= dz1;
 
-    v0[0] += dv0[0];
-    v0[1] += dv0[1];
-    v0[2] += dv0[2];
+    u0 += du0;
+    u1 += du1;
+    v0 += dv0;
+    v1 += dv1;
 
-    v1[0] += dv1[0];
-    v1[1] += dv1[1];
-    v1[2] += dv1[2];
+    vec0[0] += dVec0[0];
+    vec0[1] += dVec0[1];
+    vec0[2] += dVec0[2];
+
+    vec1[0] += dVec1[0];
+    vec1[1] += dVec1[1];
+    vec1[2] += dVec1[2];
 
     y++;
 
   }//end scanline loop
 }
 
-void scanline_convert_flat( struct matrix *points, int i, screen s, zbuffer zb, 
-  double* view, color ambient, struct constants* reflect, double specExp, double sNormal[3]) {
+void scanline_convert_flat( struct matrix *points, struct matrix *textures,
+  int i, screen s, zbuffer zb, 
+  double* view, color ambient, struct material* mat, double sNormal[3]) {
 
   int top, mid, bot, y;
   int distance0, distance1, distance2;
@@ -516,7 +574,7 @@ void scanline_convert_flat( struct matrix *points, int i, screen s, zbuffer zb,
 
   color c;
 
-  c = get_lighting(sNormal,view, ambient, reflect, specExp);
+  c = get_lighting(sNormal,view, ambient, mat, -1, -1);
 
   // Alas random color, we hardly knew ye
   /* color c; */
@@ -578,7 +636,7 @@ void scanline_convert_flat( struct matrix *points, int i, screen s, zbuffer zb,
 
   //printf("Top: %f %f %f\nMid: %f %f %f\nBot: %f %f %f\n\n", nTop[0], nTop[1], nTop[2], nMid[0], nMid[1], nMid[2], nBot[0], nBot[1], nBot[2]);
   //printf("%f\n", nBot[0] * nBot[0] + nBot[1] * nBot[1] + nBot[2] * nBot[2]);
-  //printf("dv0: %f %f %f\n", dv0[0], dv0[1], dv0[2]);
+  //printf("dVec0: %f %f %f\n", dVec0[0], dVec0[1], dVec0[2]);
 
   while ( y <= (int)points->m[1][top] ) {
 
@@ -595,7 +653,7 @@ void scanline_convert_flat( struct matrix *points, int i, screen s, zbuffer zb,
     //normalize(v1n);
     //printf("%f %f %f %f %f %f\n%d %d %d %d %d %d\n",c0R, c0G, c0B, c1R, c1G, c1B,c0.red,c0.green,c0.blue,c1.red,c1.green,c1.blue);
 
-    draw_scanline_flat(x0, z0, x1, z1, y, s, zb, c);
+    draw_scanline_flat(x0, z0, x1, z1, y, -1, -1, -1, -1, mat, s, zb, c);
     //printf("%f %f %f\n", v0[0], v0[1], v0[2]);
 
     x0+= dx0;
@@ -765,17 +823,16 @@ void draw_polygons( struct matrix *polygons, struct matrix* textures,
   double drawPercent = 0;
   double percentChange = 1.0 / (double)(polygons->lastcol/3);
   struct constants finalConstants;
-  int finalSpecExp;
   int currentMaterialID, prevMaterialID;
 
   double* normal;
 
-  color meshColor;
+  color wireframeColor;
   struct material* currentMaterial;
 
-  meshColor.red = 255;
-  meshColor.green = 255;
-  meshColor.blue = 255;
+  wireframeColor.red = 255;
+  wireframeColor.green = 255;
+  wireframeColor.blue = 255;
 
   if(forceNormalCreation || kd == NULL || kd->changed == 0){
     //printf("No vertex normal table! Creating one...\n");
@@ -813,31 +870,30 @@ void draw_polygons( struct matrix *polygons, struct matrix* textures,
       //printf("%s\n", find_material_name((int)textures->m[2][point]));
       currentMaterial = find_material(find_material_name((int)textures->m[2][point]));
       currentMaterialID = currentMaterial->id;
-      //printf("Test\n");
 
-      finalConstants.r[AMBIENT_R] = currentMaterial->ka[0];
-      finalConstants.g[AMBIENT_R] = currentMaterial->ka[1];
-      finalConstants.b[AMBIENT_R] = currentMaterial->ka[2];
+      // finalConstants.r[AMBIENT_R] = currentMaterial->ka[0];
+      // finalConstants.g[AMBIENT_R] = currentMaterial->ka[1];
+      // finalConstants.b[AMBIENT_R] = currentMaterial->ka[2];
 
-      finalConstants.r[DIFFUSE_R] = currentMaterial->kd[0];
-      finalConstants.g[DIFFUSE_R] = currentMaterial->kd[1];
-      finalConstants.b[DIFFUSE_R] = currentMaterial->kd[2];
+      // finalConstants.r[DIFFUSE_R] = currentMaterial->kd[0];
+      // finalConstants.g[DIFFUSE_R] = currentMaterial->kd[1];
+      // finalConstants.b[DIFFUSE_R] = currentMaterial->kd[2];
 
-      finalConstants.r[SPECULAR_R] = currentMaterial->ks[0];
-      finalConstants.g[SPECULAR_R] = currentMaterial->ks[1];
-      finalConstants.b[SPECULAR_R] = currentMaterial->ks[2];
+      // finalConstants.r[SPECULAR_R] = currentMaterial->ks[0];
+      // finalConstants.g[SPECULAR_R] = currentMaterial->ks[1];
+      // finalConstants.b[SPECULAR_R] = currentMaterial->ks[2];
 
-      finalSpecExp = currentMaterial->ns;
+      //finalSpecExp = currentMaterial->ns;
 
       if(prevMaterialID != currentMaterialID){
         kd = kdNormalize(kd, view, ambient, currentMaterialID);
         prevMaterialID = currentMaterialID;
       }
 
-      if(shaderType == SHADER_GOURAUD) scanline_convert_gouraud(polygons, point, s, zb, kd);
-      else if(shaderType == SHADER_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, view, ambient, &finalConstants, finalSpecExp);
-      else if(shaderType == SHADER_FLAT) scanline_convert_flat(polygons, point, s, zb, view, ambient, &finalConstants, finalSpecExp, normal);
-      else if(shaderType == SHADER_WIREFRAME) draw_wireframe(polygons,point,s,zb,meshColor);
+      if(shaderType == SHADER_GOURAUD) scanline_convert_gouraud(polygons, textures, point, s, zb, kd, currentMaterial);
+      else if(shaderType == SHADER_PHONG) scanline_convert_phong(polygons, textures, point, s, zb, kd, view, ambient, currentMaterial);
+      else if(shaderType == SHADER_FLAT) scanline_convert_flat(polygons, textures, point, s, zb, view, ambient, currentMaterial, normal);
+      else if(shaderType == SHADER_WIREFRAME) draw_wireframe(polygons, point,s,zb,wireframeColor);
 
       /* draw_line( polygons->m[0][point], */
       /*            polygons->m[1][point], */
