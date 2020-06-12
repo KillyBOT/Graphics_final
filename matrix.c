@@ -217,6 +217,12 @@ void print_matrix(struct matrix *m) {
   printf("\n");
 }//end print_matrix
 
+void print_matrix_point(struct matrix *m, int i){
+  if(i < m->lastcol && i >= 0){
+    printf("Column %d: %f %f %f\n", i, m->m[0][i], m->m[1][i], m->m[2][i]);
+  }
+}
+
 /*-------------- void ident() --------------
 Inputs:  struct matrix *m <-- assumes m is a square matrix
 

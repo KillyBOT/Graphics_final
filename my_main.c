@@ -42,12 +42,11 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include "ml6.h"
 #include "parser.h"
 #include "symtab.h"
 #include "y.tab.h"
 #include "matrix.h"
-#include "ml6.h"
 #include "display.h"
 #include "draw.h"
 #include "stack.h"
@@ -128,7 +127,7 @@ void first_pass() {
   white.g[SPECULAR_R] = 0.5;
   white.b[SPECULAR_R] = 0.5;
 
-  specExp = 64;
+  specExp = 128;
 
   add_material("DefaultMaterial");
   tmpMat = find_material("DefaultMaterial");

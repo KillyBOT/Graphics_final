@@ -1,0 +1,12 @@
+frames 60
+basename raptor
+
+push
+move 250 100 0
+scale 150 150 150
+rotate y 360 v0
+mesh :raptor_01.obj
+display
+save raptor.png
+
+vary v0 0 59 0 1

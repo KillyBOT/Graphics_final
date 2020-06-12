@@ -760,7 +760,6 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons){
   double v2[3];
   //struct hashTable* h = createHT(65536);
   struct kdTree* kd = kdCreate();
-  double** normals = malloc(sizeof(double) * (polygons->lastcol));
 
   double drawPercent = 0;
   double percentChange = 1.0 / (double)(polygons->lastcol/3);
@@ -768,9 +767,9 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons){
   for (point=0; point < polygons->lastcol-2; point+=3) {
 
     drawPercent += percentChange;
-    //printf("\e[1;1H\e[2J");
 
     normal = calculate_normal(polygons, point);
+    //print_vertex(normal);
     normalize(normal);
     //normals[point/3] = normal;
 
@@ -790,7 +789,8 @@ struct kdTree* compute_vertex_normals(struct matrix* polygons){
     kd = kdInsert(kd, v1, normal);
     kd = kdInsert(kd, v2, normal);
 
-    //printf("Generating lighting\t%d percent complete\n", (int)(drawPercent*100));
+    free(normal);
+
   }
 
   return kd;
@@ -829,15 +829,28 @@ void draw_polygons( struct matrix *polygons, struct matrix* textures,
 
   color wireframeColor;
   struct material* currentMaterial;
+  double* perspectiveView;
 
   wireframeColor.red = 255;
   wireframeColor.green = 255;
   wireframeColor.blue = 255;
 
+  //double camera[3] = {0, 0, -250};
+
+
+  // for(point = 0; point < polygons->lastcol; point++){
+  //   //print_matrix_point(polygons,point);
+  //   convert_perspective(polygons, point, 250);
+  //   //print_matrix_point(polygons,point);
+  //   printf("\n");
+  //   //printf("%d %d\n", point, polygons->lastcol);
+  // }
+
   if(forceNormalCreation || kd == NULL || kd->changed == 0){
     //printf("No vertex normal table! Creating one...\n");
     //if(kd != NULL) kdFree(kd);
     kd = compute_vertex_normals(polygons);
+    //kdPrint(kd);
     kdNormalize(kd,view, ambient,0);
   }
   //kdCheck(kd, polygons);
@@ -847,6 +860,7 @@ void draw_polygons( struct matrix *polygons, struct matrix* textures,
   prevMaterialID = -1;
 
   drawPercent = 0;
+
   for(point = 0; point < polygons->lastcol-2; point+=3){
     //normal = calculate_normal(polygons, point);
     //printf("%f %f %f\n",normal[0],normal[1],normal[2]);
@@ -868,6 +882,7 @@ void draw_polygons( struct matrix *polygons, struct matrix* textures,
       //print_matrix(materials);
       //printf("%d\n", (int)textures->m[2][point]);
       //printf("%s\n", find_material_name((int)textures->m[2][point]));
+
       currentMaterial = find_material(find_material_name((int)textures->m[2][point]));
       currentMaterialID = currentMaterial->id;
 

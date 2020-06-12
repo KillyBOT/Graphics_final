@@ -8,6 +8,7 @@ for red, green and blue respectively
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -88,17 +89,24 @@ void save_ppm( screen s, char *file) {
 
   int x, y;
   int fd;
-  char header[16];
+  char header[32];
   unsigned char pixel[3];
 
   fd = open(file, O_CREAT | O_WRONLY, 0644);
-  sprintf(header, "P6\n%d %d\n%d\n", XRES, YRES, MAX_COLOR);
-  write(fd, header, sizeof(header) - 1);
-  for ( y=0; y < YRES; y++ ) {
-    for ( x=0; x < XRES; x++) {
-      pixel[0] = s[x][y].red;
-      pixel[1] = s[x][y].green;
-      pixel[2] = s[x][y].blue;
+  sprintf(header, "P6\n%d %d\n%d\n", XRES_FINAL, YRES_FINAL, MAX_COLOR);
+  write(fd, header, strlen(header));
+  for ( y=0; y < YRES; y+= 2 ) {
+    for ( x=0; x < XRES; x+= 2) {
+
+      //Super sampling 4x
+
+      pixel[0] = (unsigned char)(((int)s[x][y].red + (int)s[x][y+1].red + (int)s[x+1][y].red + (int)s[x+1][y+1].red)/4);
+      pixel[1] = (unsigned char)(((int)s[x][y].green + (int)s[x][y+1].green + (int)s[x+1][y].green + (int)s[x+1][y+1].green)/4);
+      pixel[2] = (unsigned char)(((int)s[x][y].blue + (int)s[x][y+1].blue + (int)s[x+1][y].blue + (int)s[x+1][y+1].blue)/4);
+
+      // pixel[0] = s[x][y].red;
+      // pixel[1] = s[x][y].green;
+      // pixel[2] = s[x][y].blue;
       write(fd, pixel, sizeof(pixel));
     }
   }
@@ -145,14 +153,21 @@ void save_extension( screen s, char *file) {
   int x, y;
   FILE *f;
   char line[256];
+  unsigned char pixels[3];
 
   sprintf(line, "convert - %s", file);
 
   f = popen(line, "w");
-  fprintf(f, "P3\n%d %d\n%d\n", XRES, YRES, MAX_COLOR);
-  for ( y=0; y < YRES; y++ ) {
-    for ( x=0; x < XRES; x++)
-      fprintf(f, "%d %d %d ", s[x][y].red, s[x][y].green, s[x][y].blue);
+  fprintf(f, "P3\n%d %d\n%d\n", XRES_FINAL, YRES_FINAL, MAX_COLOR);
+  for ( y=0; y < YRES; y+=2 ) {
+    for ( x=0; x < XRES; x+=2){
+
+      pixels[0] = ((int)s[x][y].red + (int)s[x+1][y].red + (int)s[x][y+1].red + (int)s[x+1][y+1].red)/4;
+      pixels[1] = ((int)s[x][y].green + (int)s[x+1][y].green + (int)s[x][y+1].green + (int)s[x+1][y+1].green)/4;
+      pixels[2] = ((int)s[x][y].blue + (int)s[x+1][y].blue + (int)s[x][y+1].blue + (int)s[x+1][y+1].blue)/4;
+
+      fprintf(f, "%d %d %d ", pixels[0], pixels[1], pixels[2]);
+    }
     fprintf(f, "\n");
   }
   pclose(f);

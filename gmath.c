@@ -94,11 +94,15 @@ color calculate_ambient(color alight, struct material* mat, double u, double v) 
     t.green = mat->map_ka_raw[uLoc][vLoc].green;
     t.blue = mat->map_ka_raw[uLoc][vLoc].blue;
     //printf("%d %d %d\n", t.red, t.green, t.blue);
-  }
+    a.red = t.red < alight.red ? t.red * mat->ka[0] : alight.red * mat->ka[0];
+    a.green = t.green < alight.green ? t.green * mat->ka[1] : alight.green * mat->ka[1];
+    a.blue = t.blue < alight.blue ? t.blue * mat->ka[2] : alight.blue * mat->ka[2];
+  } else {
 
-  a.red = t.red < alight.red ? t.red * mat->ka[0] : alight.red * mat->ka[0];
-  a.green = t.green < alight.green ? t.green * mat->ka[1] : alight.green * mat->ka[1];
-  a.blue = t.blue < alight.blue ? t.blue * mat->ka[2] : alight.blue * mat->ka[2];
+    a.red = alight.red * mat->ka[0];
+    a.green = alight.green * mat->ka[1];
+    a.blue = alight.blue * mat->ka[2];
+  }
 
   return a;
 }
@@ -254,28 +258,47 @@ void print_vertex(double v[3]){
   printf("X: %lf\tY: %lf\tZ: %lf\n", v[0], v[1], v[2]);
 }
 
-double* convert_perspective(double vertex[3], double camera[2][3], double displaySurface[3]){
-  double* finalVals = calloc(2, sizeof(double));
+// double* convert_perspective(double vertex[3], double camera[2][3], double displaySurface[3]){
+//   double* finalVals = calloc(2, sizeof(double));
 
-  double x, y, z, tX, tY, tZ, dx, dy, dz;
+//   double x, y, z, tX, tY, tZ, dx, dy, dz;
 
-  x = vertex[0]-camera[0][0];
-  y = vertex[1]-camera[0][1];
-  z = vertex[2]-camera[0][2];
+//   x = vertex[0]-camera[0][0];
+//   y = vertex[1]-camera[0][1];
+//   z = vertex[2]-camera[0][2];
 
-  tX = camera[1][0] * (M_PI / 180);
-  tY = camera[1][1] * (M_PI / 180);
-  tZ = camera[1][2] * (M_PI / 180); 
+//   tX = camera[1][0] * (M_PI / 180);
+//   tY = camera[1][1] * (M_PI / 180);
+//   tZ = camera[1][2] * (M_PI / 180); 
 
-  dx = cos(tY) * ( sin(tZ) * y + cos(tZ) * x) - (sin(tY) * z);
-  dy = sin(tX) * ( cos(tY) * z + sin(tY) * (sin(tZ) * y + cos(tZ) * x)) + cos(tX) * (cos(tZ) * y - sin(tZ) * x);
-  dz = cos(tX) * ( cos(tY) * z + sin(tY) * (sin(tZ) * y + cos(tZ) * x)) - sin(tX) * (cos(tZ) * y - sin(tZ) * x);
+//   dx = cos(tY) * ( sin(tZ) * y + cos(tZ) * x) - (sin(tY) * z);
+//   dy = sin(tX) * ( cos(tY) * z + sin(tY) * (sin(tZ) * y + cos(tZ) * x)) + cos(tX) * (cos(tZ) * y - sin(tZ) * x);
+//   dz = cos(tX) * ( cos(tY) * z + sin(tY) * (sin(tZ) * y + cos(tZ) * x)) - sin(tX) * (cos(tZ) * y - sin(tZ) * x);
 
-  finalVals[0] = (dx * XRES)/(dz * displaySurface[0] * displaySurface[2]);
-  finalVals[1] = (dy * YRES)/(dz * displaySurface[1] * displaySurface[2]);
+//   finalVals[0] = (dx * XRES)/(dz * displaySurface[0] * displaySurface[2]);
+//   finalVals[1] = (dy * YRES)/(dz * displaySurface[1] * displaySurface[2]);
 
-  return finalVals;
+//   return finalVals;
+
+// }
+
+void convert_perspective(struct matrix* polygons, int i, double f){
+  double final[3];
+
+  double vertex[3] = {polygons->m[0][i],polygons->m[1][i],polygons->m[2][i]};
+
+  final[2] = vertex[2] / f;
+
+  final[0] = vertex[0] * final[2];
+  final[1] = vertex[1] * final[2];
+  final[2] = vertex[2];
+
+  print_vertex(final);
+
+  for(int n = 0; n < 3; n++){
+    polygons->m[n][i] = final[n];
+  }
+  polygons->m[0][i] += XRES/2;
+  polygons->m[1][i] += YRES/2;
 
 }
-
-//double* 
